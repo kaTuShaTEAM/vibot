@@ -1846,12 +1846,42 @@ end
   if database:get('bot:cmds'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
   return 
 else
+
+--[[                                       
+
+هنا تقوم بتغير امر المطور 
+قم بمسح الرقم 9647707641864 ووضع رقمك لكن لا تضعه بغير هذه الطريقه
+مثال : تكتب رقمك 07707641864 لا يجب كذلك 
+يجب عليك وضع 964 في بدايته رقم الهاتف وعدم كتابته الرقم 0 الذي في بدايه الارقام 
+ولا يجب وضع علامه + قبل الرقم 964 يجب عليك تغير الرقم من رقم 7 الى 4 فقط
+بعدها تذهب الى كلمه
+الموجوده داخل "" هذه
+"TshAke TEAM"
+الان نقوم بمسح 
+TshAke TEAM
+ونترك ""
+تكتب اسمك مثال
+"تشاكي"
+وتقوم بحفظ الملف وعمل 
+Run لملف TSHAKE-Auto.sh
+
+--]]
+
+if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^المطورين$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
+sendContact(msg.chat_id_, msg.id_, 0, 1, nil, 9647707641864, "TshAke TEAM" , "", bot_id)
+end
+
+--[[                                       
+
+رودو البوت
+
+--]]
   
 if text == 'هلو' then 
 if not database:get('bot:rep:mute'..msg.chat_id_) then
 moody = "• هَٰہۧـﮧﮧلْٰاَٰوٍّ໑اَٰتّٰ 🌝☄ֆ"
 else 
-moody = ''
+moody = ""
 end
 send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
 end
@@ -1860,7 +1890,7 @@ if text == 'تشاكي' then
 if not database:get('bot:rep:mute'..msg.chat_id_) then
 moody = "• نٍٰـعٍِّـﮧﮧمٍٰ تّٰفِٰـہضلْٰ 🍁🌛ֆ"
 else 
-moody = ''
+moody = ""
 end
 send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
 end
@@ -7460,11 +7490,7 @@ end
 	end
 	end
 	-----------------------------------------------------------------------------------------------
-if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^المطورين$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
-       sendContact(msg.chat_id_, msg.id_, 0, 1, nil, 9647707641864, "TshAke TEAM" , "", bot_id)
-    end
-	-----------------------------------------------------------------------------------------------
-          local text = msg.content_.text_:gsub('وضع اسم','setname')
+     local text = msg.content_.text_:gsub('وضع اسم','setname')
 		if text:match("^[Ss][Ee][Tt][Nn][Aa][Mm][Ee] (.*)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
 	local txt = {string.match(text, "^([Ss][Ee][Tt][Nn][Aa][Mm][Ee]) (.*)$")}
 	     changetitle(msg.chat_id_, txt[2])
@@ -8525,23 +8551,19 @@ end
 if text:match("^source$") or text:match("^اصدار$") or text:match("^الاصدار$") or text:match("^السورس$") or text:match("^سورس$") then
    
    local text =  [[
-<code>اهلا بك في سورس تشاكي</code>
+• <code>اهلا بك في سورس تشاكي</code> 🦁ֆ
 
-<code>المطورين : </code>
+• <code>المطورين</code> ⚜️:-
+• <b>TshAkE TEAM </b>
 
-<b> TshAkE TEAM </b>
+• <code>قناه السورس</code> ❇️:-
+•<b> Channel</b> | @lTSHAKEl_CH
 
-<code>قناه السورس : </code>
+• <code>رابط Github cli </code>🔰:-
+• https://github.com/moodlIMyIl/TshAkE
 
-<b>Channel | </b>@lTSHAKEl_CH
-
-<code>رابط Github cli :</code>
-
-https://github.com/moodlIMyIl/TshAkE
-
-<code>رابط Github api :</code>
-
-https://github.com/moodlIMyIl/TshAkEapi
+•<code> رابط Github api </code>🔱:-
+• https://github.com/moodlIMyIl/TshAkEapi
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
    end
@@ -8549,9 +8571,9 @@ https://github.com/moodlIMyIl/TshAkEapi
 if text:match("^اريد رابط حذف$") or text:match("^رابط حذف$") or text:match("^رابط الحذف$") or text:match("^الرابط حذف$") or text:match("^اريد رابط الحذف$") then
    
    local text =  [[
-● - رابط حذف التلي ⬇️ :
-● - احذف ولا ترجع عيش حياتك 😪💔
-● - https://telegram.org/deactivate
+• رابط حذف التلي ⬇️ ֆ
+• احذف ولا ترجع عيش حياتك 😾💚ֆ
+• https://telegram.org/deactivate
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
    end
