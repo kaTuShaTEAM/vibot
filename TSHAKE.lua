@@ -1892,6 +1892,463 @@ end
   return 
 else
 
+if text == 'هلو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• هَٰہۧـﮧﮧلْٰاَٰوٍّ໑اَٰتّٰ 🌝☄ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+
+if text == 'تشاكي' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• نٍٰـعٍِّـﮧﮧمٍٰ تّٰفِٰـہضلْٰ 🍁🌛ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شلونكم' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• تّٰمٍٰـﮧاَٰمٍٰ وٍّاَٰنٍٰتّٰـہهَٰہۧ 😽⚡️ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شلونك' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰلْٰـحٌٰمٍٰـﮧﮧدِٰاَٰلْٰلْٰهَٰہۧ وٍّ୭اَٰنٍٰتّٰـهَٰہۧ 😼💛ֆ"
+else
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'تمام' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• دِٰوٍّ൭مٍٰ يَٰـﮧﮧاَٰرِٰبٌِٰ 😻🌪ֆ"
+else
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'هلاو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• هَٰہۧـہ୪وٍّ୭اَٰتّٰ حٌٰبٌِٰـﮧيَٰ 🤗🌟ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '😐' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• شَُـبٌِٰيَٰـكٍٰ صُِـﮧﮧاَٰفِٰنٍٰ عٍِّ خّٰاَٰلْٰتّٰـہكٍٰ😹🖤ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'هاي' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• هَٰہۧـاَٰيَٰـﮧﮧاَٰتّٰ يَٰـرِٰوٍّحٌٰـہيَٰ 🙋🏼‍♂💙ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'بوت' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• تّٰفِٰـضـﮧلْٰ حٌٰبٌِٰـہيَٰ 🌚💫ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'اريد اكبل' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• شَُـوٍّ໑فِٰلْٰيَٰ وٍّيَٰـاَٰكٍٰ حٌٰدِٰيَٰـہقٍٰهَٰہۧ وٍّدِٰاَٰيَٰـﮧحٌٰ رِٰسٌٍمٍٰـہيَٰ😾😹💜ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'لتزحف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• دِٰعٍِّـوٍّ໑فِٰهَٰہۧ زًَاَٰحٌٰـﮧفِٰ عٍِّ خّٰاَٰلْٰـتّٰكٍٰ خّٰـلْٰيَٰ يَٰسٌٍـہتّٰفِٰاَٰدِٰ😾🌈ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'كلخرا' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• خّٰـﮧرِٰاَٰ يَٰتّٰـہرِٰسٌٍ حٌٰلْٰكٍٰـﮧكٍٰ يَٰاَٰخّٰـﮧرِٰاَٰاَٰ💩ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'زاحف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• زًَاَٰحٌٰـﮧفِٰ عٍِّ اَٰخّٰتّٰـﮧكٍٰ؟ كٍٰضيَٰـﮧتّٰ عٍِّمٍٰرِٰكٍٰ جًِّرِٰجًِّـﮧفِٰ😾😹ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'دي' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• خّٰلْٰيَٰنٍٰـﮧيَٰ اَٰحٌٰبٌِٰـﮧكٍٰ 😾ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'فرخ' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• وٍّيَٰنٍٰـﮧهَٰہۧ؟ خّٰ اَٰحٌٰضـﮧرِٰهَٰہۧ 😾😹ֆ"
+else
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'تعالي خاص' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰهَٰہۧـﮧوٍّ໑ ضـﮧلْٰ ضـﮧلْٰ سٌٍـﮧاَٰحٌٰفِٰ كٍٰبٌِٰـﮧرِٰ طَُِمٍٰـہكٍٰ😗😂💚ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'اكرهك' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "•دِٰيَٰلْٰـﮧهَٰہۧ شَُـﮧوٍّ୭نٍٰ اَٰطَُِيَٰـقٍٰكٍٰ نٍٰـيَٰ 🙎🏼‍♂🖤ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'احبك' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "•حٌٰبٌِٰيَٰبٌِٰـﮧيَٰ وٍّنٍٰـﮧيَٰ هَٰہۧــمٍٰ😻👅ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'باي' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• وٍّيَٰـﮧنٍٰ رِٰاَٰيَٰـہحٌٰ خّٰلْٰيَٰنٍٰـﮧهَٰہۧ مٍٰتّٰوٍّنٍٰسٌٍيَٰـﮧنٍٰ🙁💔ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'واكف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• بٌِٰنٍٰلْٰخّٰـﮧرِٰاَٰ وٍّيَٰـﮧنٍٰ وٍّاَٰكٍٰـﮧفِٰ😐😒ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'وين المدير' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• لْٰيَٰـﮧشَُ شَُتّٰـﮧرِٰيَٰدِٰ🤔ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'انجب' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• صُِـﮧاَٰرِٰ سٌٍتّٰـﮧاَٰدِٰيَٰ🐸❤️ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'تحبني' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• مٍٰـﮧاَٰدِٰرِٰيَٰ اَٰفِٰكٍٰـﮧرِٰ🙁😹ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🌚' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• فِٰـﮧدِٰيَٰتّٰ صُِخّٰـﮧاَٰمٍٰكٍٰ🙊👄ֆ "
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🙄' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• نٍٰـہزًَلْٰ عٍِّيَٰـنٍٰكٍٰ عٍِّيَٰـﮧبٌِٰ🌚😹ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '😒' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• شَُبٌِٰيَٰـﮧكٍٰ كٍٰاَٰلْٰـﮧبٌِٰ خّٰلْٰقٍٰتّٰـﮧكٍٰ😟🐈ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '😳' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• هَٰہۧـاَٰ بٌِٰسٌٍ لْٰاَٰ شَُفِٰـﮧتّٰ عٍِّمٍٰتّٰـﮧكٍٰ اَٰلْٰعٍِّـﮧوٍّ໑بٌِٰهَٰہۧ😐😹ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🙁' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• تّٰعٍِّـﮧاَٰلْٰ اَٰشَُكٍٰيَٰلْٰـﮧيَٰ هَٰہۧمٍٰوٍّمٍٰـﮧكٍٰ لْٰيَٰـشَُ • ضاَٰيَٰـﮧجًِّ🙁💔ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🚶💔' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• تّٰعٍِّـﮧاَٰلْٰ اَٰشَُكٍٰيَٰلْٰـﮧيَٰ هَٰہۧمٍٰوٍّمٍٰـﮧكٍٰ لْٰيَٰـشَُ • ضاَٰيَٰـﮧجًِّ🙁💔ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🙂' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• ثِْْكٍٰيَٰـﮧلْٰ نٍٰهَٰہۧنٍٰهَٰہۧنٍٰهَٰہۧنٍٰهَٰہۧ🐛ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '🌝' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• مٍٰنٍٰـﮧوٍّ໑رِٰ حٌٰبٌِٰـعٍِّمٍٰـہرِٰيَٰ😽💚ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'صباحو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• صُِبٌِٰاَٰحٌٰـہكٍٰ عٍِّسٌٍـہلْٰ يَٰعٍِّسٌٍـﮧلْٰ😼🤞ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'صباح الخير' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• صُِبٌِٰاَٰحٌٰـہكٍٰ عٍِّسٌٍـہلْٰ يَٰعٍِّسٌٍـﮧلْٰ😼🤞ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'كفو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰهَٰہۧ كٍٰفِٰـﮧوٍّ໑ يَٰبٌِٰہوٍّ୭ اَٰلْٰضـلْٰہوٍّ୭عٍِّ🙀😹ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '😌' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰلْٰمٍٰطَُِلْٰـﮧوٍّ໑بٌِٰ !😕💞ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'اها' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• يَٰبٌِٰ قٍٰاَٰبٌِٰـﮧلْٰ اَٰغِِٰشَُـﮧكٍٰ شَُسٌٍاَٰلْٰفِٰـﮧهَٰہۧ حٌٰبٌِٰ😐🌝ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شسمج' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰسٌٍـمٍٰهَٰہۧـﮧاَٰ جًِّعٍِّجًِّـﮧوٍّ໑عٍِّهَٰہۧ😹👊ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شسمك' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰسٌٍمٍٰـﮧهَٰہۧ عٍِّبٌِٰـﮧوٍّ໑سٌٍيَٰ لْٰـوٍّ૭سٌٍہيَٰ😾😹💛ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شوف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• شَُشَُـﮧﮧوٍّ໑فِٰ 🌝🌝ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'مساء الخير' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• مٍٰسٌٍـﮧاَٰء اَٰلْٰحٌٰـﮧبٌِٰ يَٰحٌٰہبٌِٰحٌٰہبٌِٰ🌛🔥ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'المدرسه' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• لْٰتّٰجًِّيَٰـﮧبٌِٰ اَٰسٌٍمٍٰـﮧهَٰہۧ لْٰاَٰ اَٰطَُِـﮧرِٰدِٰكٍٰ🌞✨ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'منو ديحذف رسائلي' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• خّٰـﮧاَٰلْٰتّٰـہكٍٰ 🌚ֆ🌝"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'البوت واكف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• لْٰجًِّـﮧذَْبٌِٰ حٌٰبٌِٰـہيَٰ 🌞⚡️ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'غلس' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• وٍّ໑كٍٰ بٌِٰـﮧسٌٍ سٌٍـﮧوٍّ୭لْٰفِٰلْٰيَٰ اَٰلْٰسٌٍـﮧاَٰلْٰفِٰهَٰہۧ بٌِٰعٍِّـﮧدِٰيَٰنٍٰ🌝🦅ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'حارة' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• تّٰسٌٍـہمٍٰطَُِ سٌٍمٍٰـﮧطَُِ غِِٰيَٰـﮧرِٰ يَٰرِٰحٌٰمٍٰنٍٰـﮧهَٰہۧ اَٰلْٰاَٰعٍِّبٌِٰـاَٰدِٰيَٰ وٍّيَٰنٍٰـہطَُِيَٰ عٍِّطَُِلْٰـﮧهَٰہۧ 😾💔ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'هههه' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'ههههه' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == '😹' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• نٍٰشَُـﮧاَٰلْٰلْٰهَٰہۧ دِٰاَٰيَٰمٍٰـﮧهَٰہۧ💆🏻‍♂💘ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'وين' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• بٌِٰـﮧﮧأرِٰض اَٰلْٰلْٰهَٰہۧ اَٰلْٰـہوٍّاَٰسٌٍعٍِّـﮧهَٰہۧ😽💜ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'كافي لغوة' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• كٍٰـيَٰفِٰنٍٰـﮧهَٰہۧ نٍٰتّٰـﮧهَٰہۧ شَُعٍِّـہلْٰيَٰكٍٰ😼👊ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'نايمين' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰنٍٰـﮧيَٰ سٌٍهَٰہۧـہرِٰاَٰنٍٰ اَٰحٌٰرِٰسٌٍـﮧكٍٰمٍٰ مٍٰـﮧטּ تّٰـرِٰاَٰمٍٰـﮧبٌِٰ😿😹🙌ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'اكو احد' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• يَٰ عٍِّيَٰـنٍٰـﮧيَٰ اَٰنٍٰـہيَٰ مٍٰـوٍّ૭جًِّـﮧوٍّدِٰ🌝✨ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'فديت' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "•فِٰـﮧﮧدِٰاَٰكٍٰ/جًِّ ثِْْـﮧوٍّ୪لْٰاَٰنٍٰ اَٰلْٰكٍٰـرِٰوٍّ୭بٌِٰ😟😂💚ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'شكو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• كٍٰلْٰـشَُـﮧﮧيَٰ مٍٰـہاَٰكٍٰـﮧوٍّ اَٰرِٰجًِّـعٍِّ نٍٰـاَٰمٍٰ🐼🌩ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'اوف' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• هَٰہۧـﮧﮧاَٰيَٰ اَٰوٍّفِٰ مٍٰنٍٰ يَٰـاَٰ نٍٰـوٍّ୭عٍِّ صُِـاَٰرِٰتّٰ اَٰلْٰـسٌٍاَٰلْٰفِٰهَٰہۧ مٍٰتّٰـنٍٰعٍِّرِٰفِٰ🌚🌙ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'احبج' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "•جًِّـﮧذَْاَٰبٌِٰ يَٰـرِٰيَٰدِٰ يَٰطَُِـہكٍٰجًِّ😹🌞⚡️ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
+if text == 'انتة منو' then 
+if not database:get('bot:rep:mute'..msg.chat_id_) then
+moody = "• اَٰنٍٰـﮧﮧيَٰ بٌِٰـوٍّ໑تّٰ💨🌝ֆ"
+else 
+moody = ''
+end
+send(msg.chat_id_, msg.id_, 1, moody, 1, 'md')
+end
     ------------------------------------ With Pattern -------------------------------------------
 	if text:match("^[Ll][Ee][Aa][Vv][Ee]$") and is_admin(msg.sender_user_id_, msg.chat_id_) then
 	     chat_leave(msg.chat_id_, bot_id)
@@ -6482,10 +6939,16 @@ end
 	lock_rep = '`مفعله | 🔓`'
 	end
 
-    if database:get('bot:rep:mute'..msg.chat_id_) then
+    if database:get('bot:repsudo:mute'..msg.chat_id_) then
 	lock_repsudo = '`معطله | 🔐`'
 	else
 	lock_repsudo = '`مفعله | 🔓`'
+	end
+	
+    if database:get('bot:repowner:mute'..msg.chat_id_) then
+	lock_repowner = '`معطله | 🔐`'
+	else
+	lock_repowner = '`مفعله | 🔓`'
 	end
 
     if database:get('bot:id:mute'..msg.chat_id_) then
@@ -6544,8 +7007,9 @@ end
    .."• `الفيديوهات` : "..mute_video.."\n• `الشارحه` : "..lock_cmd.."\n"
    .."• `الماركدون` : "..mute_mdd.."\n• `الملفات` : "..mute_doc.."\n" 
    .."• `الصور` : "..mute_photo.."\n"
-   .."• `الردود` : "..lock_rep.."\n"
+   .."• `ردود البوت` : "..lock_rep.."\n"
    .."• `ردود المطور` : "..lock_repsudo.."\n"
+   .."• `ردود المدير` : "..lock_repowner.."\n"
    .."• `الايدي` : "..lock_id.."\n\n"
    .."ֆ • • • • • • • • • • • • • ֆ\n• `الترحيب` : "..send_welcome.."\n• `زمن التكرار` : "..flood_t.."\n"
    .."• `عدد التكرار بالطرد` : "..flood_m.."\n"
@@ -7288,7 +7752,7 @@ end
 redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'msg')  
   return false end  
 if text:match("^(.*)$") then
-if not database:get('bot:rep:mute'..msg.chat_id_) then
+if not database:get('bot:repowner:mute'..msg.chat_id_) then
 local keko = redis:get('keko'..text..''..bot_id..''..msg.chat_id_..'')
 send(msg.chat_id_, msg.id_, 1, keko, 1, 'md')
 end
@@ -7777,34 +8241,34 @@ end
 end
 ----------------------------------------------------------------------------------------------
 
-  if text == "unlock reply" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Unlock Reply" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تفعيل الردود" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if text == "unlock reply bot" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Unlock Reply bot" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تفعيل ردود البوت" and is_owner(msg.sender_user_id_, msg.chat_id_) then
   if not database:get('bot:rep:mute'..msg.chat_id_) then
   if database:get('lang:gp:'..msg.chat_id_) then
-      send(msg.chat_id_, msg.id_, 1, '> *Replies is already enabled*️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '> *Replies bot is already enabled*️', 1, 'md')
 else
-      send(msg.chat_id_, msg.id_, 1, '• `الردود بالفعل تم تفعيلها` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `ردود البوت بالفعل تم تفعيلها` ☑️', 1, 'md')
       end
   else
   if database:get('lang:gp:'..msg.chat_id_) then
-      send(msg.chat_id_, msg.id_, 1, '> *Replies has been enable*️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '> *Replies bot has been enable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل الردود` ☑️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل ردود البوت` ☑️', 1, 'md')
        database:del('bot:rep:mute'..msg.chat_id_)
       end
     end
     end
-  if text == "lock reply" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Lock Reply" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تعطيل الردود" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if text == "lock reply bot" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Lock Reply bot" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تعطيل ردود البوت" and is_owner(msg.sender_user_id_, msg.chat_id_) then
   if database:get('bot:rep:mute'..msg.chat_id_) then
   if database:get('lang:gp:'..msg.chat_id_) then
-      send(msg.chat_id_, msg.id_, 1, '> *Replies is already disabled*️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '> *Replies bot is already disabled*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '• `الردود بالفعل تم تعطيلها` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `ردود البوت بالفعل تم تعطيلها` ⚠️', 1, 'md')
       end
     else
   if database:get('lang:gp:'..msg.chat_id_) then
-      send(msg.chat_id_, msg.id_, 1, '> *Replies has been disable*️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '> *Replies bot has been disable*️', 1, 'md')
     else
-      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل الردود` ⚠️', 1, 'md')
+      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل ردود البوت` ⚠️', 1, 'md')
         database:set('bot:rep:mute'..msg.chat_id_,true)
       end
     end
@@ -7840,6 +8304,39 @@ else
     else
       send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل ردود المطور` ⚠️', 1, 'md')
         database:set('bot:repsudo:mute'..msg.chat_id_,true)
+      end
+    end
+  end
+  
+  if text == "unlock reply owner" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Unlock Reply owner" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تفعيل ردود المدير" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if not database:get('bot:repowner:mute'..msg.chat_id_) then
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies owner is already enabled*️', 1, 'md')
+else
+      send(msg.chat_id_, msg.id_, 1, '• `ردود المدير بالفعل تم تفعيلها` ☑️', 1, 'md')
+      end
+  else
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies owner has been enable*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `تم تفعيل ردود المدير` ☑️', 1, 'md')
+       database:del('bot:repowner:mute'..msg.chat_id_)
+      end
+    end
+    end
+  if text == "lock reply owner" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "Lock Reply owner" and is_owner(msg.sender_user_id_, msg.chat_id_) or text == "تعطيل ردود المدير" and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  if database:get('bot:repowner:mute'..msg.chat_id_) then
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies owner is already disabled*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `ردود المدير بالفعل تم تعطيلها` ⚠️', 1, 'md')
+      end
+    else
+  if database:get('lang:gp:'..msg.chat_id_) then
+      send(msg.chat_id_, msg.id_, 1, '> *Replies owner has been disable*️', 1, 'md')
+    else
+      send(msg.chat_id_, msg.id_, 1, '• `تم تعطيل ردود المدير` ⚠️', 1, 'md')
+        database:set('bot:repowner:mute'..msg.chat_id_,true)
       end
     end
   end
@@ -7908,6 +8405,12 @@ local user_msgs = database:get('user:msgs'..msg.chat_id_..':'..msg.sender_user_i
       t = 'Group Moderator'
       else
       t = 'ادمن للكروب 🎐'
+      end
+      elseif is_vip(msg.sender_user_id_, msg.chat_id_) then
+      if database:get('lang:gp:'..msg.chat_id_) then
+      t = 'Group Moderator'
+      else
+      t = 'عضو مميز🎗'
       end
       else
       if database:get('lang:gp:'..msg.chat_id_) then
@@ -8060,8 +8563,9 @@ end
 *| spam |* `الكلايش`
 *| arabic |* `العربيه`
 *| english |* `الانكليزيه`
-*| reply |* `الردود`
+*| reply bot |* `ردود البوت`
 *| reply sudo |* `ردود المطور`
+*| reply owner |* `ردود المدير`
 *| id |* `الايدي`
 *| all |* `كل الميديا`
 *| all |* `مع العدد قفل الميديا بالثواني`
@@ -8459,8 +8963,10 @@ end
 • تعطيل الترحيب | ❌
 • جلب الترحيب | 💢
 
-• تفعيل الردود  | 🔔
-• تعطيل الردود |🔕
+• تفعيل ردود البوت  | 🔔
+• تعطيل ردود البوت |🔕
+• تفعيل ردود المدير  | ✅
+• تعطيل ردود المدير |❎ 
 • تفعيل ردود المطور | ⤴️
 • تعطيل ردود المطور | ⤴️
 • تفعيل الايدي  | 🔔
