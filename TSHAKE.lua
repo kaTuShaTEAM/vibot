@@ -8567,7 +8567,7 @@ if text:match("^source$") or text:match("^اصدار$") or text:match("^الاص
 • <code>رابط Github cli </code>🔰:-
 • https://github.com/moodlIMyIl/TshAkE
 
-•<code> رابط Github api </code>:-
+• <code>رابط Github api </code>🔰:-
 • https://github.com/moodlIMyIl/TshAkEapi
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
