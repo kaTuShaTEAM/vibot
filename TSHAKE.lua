@@ -7772,7 +7772,7 @@ redis:sadd('repowner'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', te
 if keko1 == 're' then
 local keko2 = redis:get('msg'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'')
 redis:set('keko'..keko2..''..bot_id..''..msg.chat_id_..'', text)  
-redis:sadd('kekore'..bot_id, keko2)
+redis:sadd('kekore'..bot_id..''..msg.chat_id_..'', keko2)
 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '_> Saved_', 1, 'md')
 else
@@ -7879,9 +7879,9 @@ else
 
 local text = msg.content_.text_:gsub('مسح ردود المدير','clean rep owner')
 if text:match("^[Cc][Ll][Ee][Aa][Nn] [Rr][Ee][Pp] [Oo][Ww][Nn][Ee][Rr]$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
-  local list = redis:smembers('kekore'..bot_id)
+  local list = redis:smembers('kekore'..bot_id..''..msg.chat_id_..'')
   for k,v in pairs(list) do
-redis:del('kekore'..bot_id, text)
+redis:del('kekore'..bot_id..''..msg.chat_id_..'', text)
 redis:set('keko'..v..''..bot_id..''..msg.chat_id_..'', " ")  
 end
 if database:get('lang:gp:'..msg.chat_id_) then
@@ -7989,7 +7989,7 @@ end
 
 local text = msg.content_.text_:gsub('ردود المدير','rep owner list')
 if text:match("^[Rr][Ee][Pp] [Oo][Ww][Nn][Ee][Rr] [Ll][Ii][Ss][Tt]$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
-  local list = redis:smembers('kekore'..bot_id)
+  local list = redis:smembers('kekore'..bot_id..''..msg.chat_id_..'')
   if database:get('lang:gp:'..msg.chat_id_) then
   text = "<b>rep owner List :</b>\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- Enabled\n• ❎ :- Disabled\nֆ • • • • • • • • • • • • • ֆ\n"
 else 
