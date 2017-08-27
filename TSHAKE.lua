@@ -3792,7 +3792,7 @@ end
 	end
 end
           local text = msg.content_.text_:gsub('وضع كلايش بالمسح','spam del')
-if text:match("^[Ss][Pp][Aa][Mm] [Dd][Ee][Ll] (%d+)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+if text:match("^[Ss][Pp][Aa][Mm] [Dd][Ee][Ll] (%d+)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 local sensspam = {string.match(text, "^([Ss][Pp][Aa][Mm] [Dd][Ee][Ll]) (%d+)$")}
 if tonumber(sensspam[2]) < 40 then
                 if database:get('lang:gp:'..msg.chat_id_) then
@@ -3810,7 +3810,7 @@ end
 end
 end
           local text = msg.content_.text_:gsub('وضع كلايش بالتحذير','spam warn')
-if text:match("^[Ss][Pp][Aa][Mm] [Ww][Aa][Rr][Nn] (%d+)$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+if text:match("^[Ss][Pp][Aa][Mm] [Ww][Aa][Rr][Nn] (%d+)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
 local sensspam = {string.match(text, "^([Ss][Pp][Aa][Mm] [Ww][Aa][Rr][Nn]) (%d+)$")}
 if tonumber(sensspam[2]) < 40 then
                 if database:get('lang:gp:'..msg.chat_id_) then
@@ -3958,7 +3958,7 @@ end
     local gpss = database:smembers("bot:groups") or 0
 	local rws = {string.match(text, "^(bc) (.*)$")} 
 	for i=1, #gpss do
-		  send(gpss[i], 0, 1, rws[2], 1, 'md')
+		  send(gpss[i], 0, 1, rws[2], 1, 'html')
   end
                 if database:get('lang:gp:'..msg.chat_id_) then
                    send(msg.chat_id_, msg.id_, 1, '*Done*\n_Your Msg Send to_ `'..gps..'` _Groups_', 1, 'md')
@@ -7650,7 +7650,7 @@ end
     end
      
   ----------------------------------------------------------------------------------------------- 
-if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^المطورين$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
+if text:match("^[Dd][Ee][Vv]$")or text:match("^مطور بوت$") or text:match("^مطورين$") or text:match("^مطور البوت$") or text:match("^مطور$") or text:match("^المطور$") and msg.reply_to_message_id_ == 0 then
 local nkeko = redis:get('nmkeko'..bot_id)
 local nakeko = redis:get('nakeko'..bot_id)
   
@@ -7715,9 +7715,11 @@ else
 send(msg.chat_id_, msg.id_, 1, '• `تم اضافته`  '..text..' `مطور للبوت`☑️', 1, 'md')
 end
 redis:set('sudoo'..text..''..bot_id, 'yes')  
+redis:sadd('dev'..bot_id, text)
 redis:set('qkeko'..msg.sender_user_id_..''..bot_id, 'no')  
   return false end  
 end  
+
   for k,v in pairs(sudo_users) do
 local text = msg.content_.text_:gsub('حذف مطور','rem sudo')
 if text:match("^[Rr][Ee][Mm] [Ss][Uu][Dd][Oo]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
@@ -7765,10 +7767,12 @@ send(msg.chat_id_, msg.id_, 1, '• الان ارسل الرد الذي تريد
 end
 redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 're')  
 redis:set('msg'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', text)  
+redis:sadd('repowner'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', text)  
   return false end  
 if keko1 == 're' then
 local keko2 = redis:get('msg'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'')
 redis:set('keko'..keko2..''..bot_id..''..msg.chat_id_..'', text)  
+redis:sadd('kekore'..bot_id, keko2)
 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '_> Saved_', 1, 'md')
 else
@@ -7796,7 +7800,7 @@ else
 send(msg.chat_id_, msg.id_, 1, '• تم حذف الرد ⚠️', 1, 'md')
 end
 redis:set('keko1'..msg.sender_user_id_..''..bot_id..''..msg.chat_id_..'', 'no')  
- redis:set('keko'..text..''..bot_id..''..msg.chat_id_..'', " ")  
+redis:set('keko'..text..''..bot_id..''..msg.chat_id_..'', " ")  
  end  
 end
 
@@ -7827,6 +7831,7 @@ redis:set('msg'..msg.sender_user_id_..''..bot_id, text)
 if keko1 == 're' then
 local keko2 = redis:get('msg'..msg.sender_user_id_..''..bot_id)
 redis:set('keko'..keko2..''..bot_id, text)  
+redis:sadd('kekoresudo'..bot_id, keko2)
 if database:get('lang:gp:'..msg.chat_id_) then
 send(msg.chat_id_, msg.id_, 1, '_> Saved_', 1, 'md')
 else
@@ -7858,6 +7863,165 @@ redis:set('keko1'..msg.sender_user_id_..''..bot_id, 'no')
  end  
 end
 
+local text = msg.content_.text_:gsub('مسح المطورين','clean sudo')
+if text:match("^[Cc][Ll][Ee][Aa][Nn] [Ss][Uu][Dd][Oo]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
+  local list = redis:smembers('dev'..bot_id)
+  for k,v in pairs(list) do
+redis:del('dev'..bot_id, text)
+redis:del('sudoo'..v..''..bot_id, 'no')  
+end
+if database:get('lang:gp:'..msg.chat_id_) then
+  send(msg.chat_id_, msg.id_, 1, '_> Bot developers_ *have been cleared*', 1, 'md')
+else 
+  send(msg.chat_id_, msg.id_, 1, "• `تم مسح مطورين البوت` 🗑", 1, 'md')
+    end
+  end
+
+local text = msg.content_.text_:gsub('مسح ردود المدير','clean rep owner')
+if text:match("^[Cc][Ll][Ee][Aa][Nn] [Rr][Ee][Pp] [Oo][Ww][Nn][Ee][Rr]$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  local list = redis:smembers('kekore'..bot_id)
+  for k,v in pairs(list) do
+redis:del('kekore'..bot_id, text)
+redis:set('keko'..v..''..bot_id..''..msg.chat_id_..'', " ")  
+end
+if database:get('lang:gp:'..msg.chat_id_) then
+  send(msg.chat_id_, msg.id_, 1, '_> Owner replies_ *cleared*', 1, 'md')
+else 
+  send(msg.chat_id_, msg.id_, 1, "• `تم مسح ردود المدير` 🗑", 1, 'md')
+    end
+  end
+
+local text = msg.content_.text_:gsub('مسح ردود المطور','clean rep sudo')
+if text:match("^[Cc][Ll][Ee][Aa][Nn] [Rr][Ee][Pp] [Ss][Uu][Dd][Oo]$") and is_sudo(msg) then
+  local list = redis:smembers('kekoresudo'..bot_id)
+  for k,v in pairs(list) do
+redis:del('kekoresudo'..bot_id, text)
+redis:set('keko'..v..''..bot_id..'', " ")  
+end
+if database:get('lang:gp:'..msg.chat_id_) then
+  send(msg.chat_id_, msg.id_, 1, '_> Sudo replies_ *cleared*', 1, 'md')
+else 
+  send(msg.chat_id_, msg.id_, 1, "• `تم مسح ردود المطور` 🗑", 1, 'md')
+    end
+  end
+
+local text = msg.content_.text_:gsub('تحديث','reload')
+if text:match("^[Rr][Ee][Ll][Oo][Aa][Dd]$") and is_sudo(msg) then
+if database:get('lang:gp:'..msg.chat_id_) then
+  send(msg.chat_id_, msg.id_, 1, '_> The bot has been_ *reloaded*', 1, 'md')
+  else
+	send(msg.chat_id_, msg.id_, 1, "• `تم تحديث البوت` ☑️", 1, 'md')
+	end
+os.execute('./TSHAKE-Auto.sh')
+end
+
+local text = msg.content_.text_:gsub('المطورين','sudo list')
+if text:match("^[Ss][Uu][Dd][Oo] [Ll][Ii][Ss][Tt]$") and tonumber(msg.sender_user_id_) == tonumber(sudo_add) then
+	local list = redis:smembers('dev'..bot_id)
+  if database:get('lang:gp:'..msg.chat_id_) then
+  text = "<b>Sudo List :</b>\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- added\n• ❎ :- Deleted\nֆ • • • • • • • • • • • • • ֆ\n"
+else 
+  text = "• <code>قائمه المطورين </code>⬇️ :\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- تم رفعه\n• ❎ :- تم تنزيله\nֆ • • • • • • • • • • • • • ֆ\n"
+  end
+	for k,v in pairs(list) do
+			local keko11 = redis:get('sudoo'..v..''..bot_id)
+			local botlua = "❎"
+       if keko11 == 'yes' then
+       botlua = "✅"
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		else
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		end
+	end
+	if #list == 0 then
+	   if database:get('lang:gp:'..msg.chat_id_) then
+                text = "<b>Sudo List is empty !</b>"
+              else 
+                text = "• <code>لا يوجد مطورين</code> ⚠️"
+end
+    end
+	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
+end
+
+local text = msg.content_.text_:gsub('ردود المطور','rep sudo list')
+if text:match("^[Rr][Ee][Pp] [Ss][Uu][Dd][Oo] [Ll][Ii][Ss][Tt]$") and is_sudo(msg) then
+	local list = redis:smembers('kekoresudo'..bot_id)
+  if database:get('lang:gp:'..msg.chat_id_) then
+  text = "<b>rep sudo List :</b>\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- Enabled\n• ❎ :- Disabled\nֆ • • • • • • • • • • • • • ֆ\n"
+else 
+  text = "• <code>قائمه ردود المطور </code>⬇️ :\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- مفعله\n• ❎ :- معطله\nֆ • • • • • • • • • • • • • ֆ\n"
+  end
+	for k,v in pairs(list) do
+  local keko11 = redis:get('keko'..v..''..bot_id)
+			local botlua = "✅"
+       if keko11 == ' ' then
+       botlua = "❎"
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		else
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		end
+	end
+	if #list == 0 then
+	   if database:get('lang:gp:'..msg.chat_id_) then
+                text = "<b>rep sudo List is empty !</b>"
+              else 
+                text = "• <code>لا يوجد ردود للمطور</code> ⚠️"
+end
+    end
+	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
+end
+
+local text = msg.content_.text_:gsub('ردود المدير','rep owner list')
+if text:match("^[Rr][Ee][Pp] [Oo][Ww][Nn][Ee][Rr] [Ll][Ii][Ss][Tt]$") and is_owner(msg.sender_user_id_, msg.chat_id_) then
+  local list = redis:smembers('kekore'..bot_id)
+  if database:get('lang:gp:'..msg.chat_id_) then
+  text = "<b>rep owner List :</b>\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- Enabled\n• ❎ :- Disabled\nֆ • • • • • • • • • • • • • ֆ\n"
+else 
+  text = "• <code>قائمه ردود المدير </code>⬇️ :\nֆ • • • • • • • • • • • • • ֆ\n• ✅ :- مفعله\n• ❎ :- معطله\nֆ • • • • • • • • • • • • • ֆ\n"
+  end
+	for k,v in pairs(list) do
+    local keko11 = redis:get('keko'..v..''..bot_id..''..msg.chat_id_..'')
+			local botlua = "✅"
+       if keko11 == ' ' then
+       botlua = "❎"
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		else
+  if database:get('lang:gp:'..msg.chat_id_) then
+    	text = text..k.." - "..v.." - "..botlua.."\n"
+    			else
+			text = text..k.." - "..v.." - "..botlua.."\n"
+			end
+		end
+	end
+	if #list == 0 then
+	   if database:get('lang:gp:'..msg.chat_id_) then
+                text = "<b>rep owner List is empty !</b>"
+              else 
+                text = "• <code>لا يوجد ردود للمدير</code> ⚠️"
+end
+    end
+	send(msg.chat_id_, msg.id_, 1, text, 1, 'html')
+end
 	-----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('كرر','echo')
   	if text:match("^echo (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
@@ -8150,8 +8314,7 @@ end
        chat_id_ = msg.chat_id_,
           from_message_id_ = 0,
    offset_ = 0,
-          limit_ = tonumber(matches[2])
-    }, delmsg, nil)
+          limit_ = tonumber(matches[2])}, delmsg, nil)
       pm ='• <i>[ '..matches[2]..' ]</i> <code>من الرسائل تم حذفها ☑️❌</code>'
            send(msg.chat_id_, msg.id_, 1, pm, 1, 'html')
        end
@@ -8688,6 +8851,8 @@ end
 *| get wlc |* `معرفه الترحيب الحالي` 
 *| add rep |* `اضافه رد` 
 *| rem rep |* `حذف رد` 
+*| rep owner list |* `اظهار ردود المدير` 
+*| clean rep owner |* `مسح ردو المدير` 
 *======================*
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -8768,6 +8933,10 @@ end
 *| add rep all |* `اضف رد لكل المجموعات`
 *| rem rep all |* `حذف رد لكل المجموعات`
 *| change ph |* `تغير جهه المطور`
+*| sudo list |* `اظهار المطورين` 
+*| rep sudo list |* `اظهار ردود المطور` 
+*| clean sudo |* `مسح المطورين` 
+*| clean rep sudo |* `مسح ردود المطور` 
 *======================*
 ]]
                 send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
@@ -8973,6 +9142,8 @@ end
 • تفعيل ردود المطور | ⤴️
 • تعطيل ردود المطور | ⤴️
 
+• ردود المدير |⏺
+• مسح ردود المدير |🗑
 • تفعيل الايدي  | 🔔
 • تعطيل الايدي |🔕
 • معلومات + ايدي|💯
@@ -9043,8 +9214,8 @@ end
 • قائمه العام | 🗒
 • المدراء | 📋
 • رفع ادمن للبوت | 🔺
-ֆ • • • • • • • • • • • • • ֆ
 • تنزيل ادمن للبوت | 🔻
+ֆ • • • • • • • • • • • • • ֆ
 • رفع مدير | 🔶
 • تنزيل مدير | 🔸
 • حظر عام | 🔴
@@ -9053,8 +9224,13 @@ end
 • اضافه | ⏺
 • اذاعه + كليشه | 🛃
 • تنظيف + عدد | 🚮
+
 • اضف مطور | ⏫
 • حذف مطور |⏬
+• المطورين |🔆
+• مسح المطورين |🗑
+• ردود المطور |🔘
+• مسح ردود المطور |🗑
 • تغير امر المطور |🗳
 • اضف رد للكل |📨
 • حذف رد للكل | 📤
