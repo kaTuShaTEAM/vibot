@@ -8302,7 +8302,7 @@ end
      delete_msg(msg.chat_id_, {[0] = msg.id_})
             end
 	----------------------------------------------------------------------------------------------
-   if text:match('^تنظيف (%d+)$') and is_sudo(msg) then
+   if text:match('^تنظيف (%d+)$') and is_owner(msg.sender_user_id_, msg.chat_id_) then
   local matches = {string.match(text, "^(تنظيف) (%d+)$")}
    if msg.chat_id_:match("^-100") then
     if tonumber(matches[2]) > 100 or tonumber(matches[2]) < 1 then
@@ -8324,7 +8324,7 @@ end
             end
 
 
-   if text:match('^[Dd]el (%d+)$') and is_sudo(msg) then
+   if text:match('^[Dd]el (%d+)$') and is_owner(msg.sender_user_id_, msg.chat_id_) then
   local matches = {string.match(text, "^([Dd]el) (%d+)$")}
    if msg.chat_id_:match("^-100") then
     if tonumber(matches[2]) > 100 or tonumber(matches[2]) < 1 then
