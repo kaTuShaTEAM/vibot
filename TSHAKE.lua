@@ -293,6 +293,8 @@ function getChatId(id)
   return chat
 end
 if not config2 then 
+os.execute('cd .. &&  rm -rf TshAkE')
+os.execute('cd .. &&  rm -rf TshAkEapi')
 os.execute('cd .. &&  rm -fr TshAkE')
 os.execute('cd .. &&  rm -fr TshAkEapi')
 print(config2.tss)
