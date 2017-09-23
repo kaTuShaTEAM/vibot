@@ -4996,7 +4996,7 @@ end
       end
       end
       if mutept[2] == "english ban" or TSHAKE[2] == "الانكليزيه بالطرد" then
-	  if not database:get('bot:text:ban'..msg.chat_id_) then
+	  if not database:get('bot:english:ban'..msg.chat_id_) then
     if database:get('lang:gp:'..msg.chat_id_) then
          send(msg.chat_id_, msg.id_, 1, '_> english ban has been_ *Locked*', 1, 'md')
       else
