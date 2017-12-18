@@ -9,7 +9,6 @@
 serpent = require('serpent')
 serp = require 'serpent'.block
 http = require("socket.http")
-config2 = dofile('libs/serpant.lua') 
 https = require("ssl.https")
 http.TIMEOUT = 10
 lgi = require ('lgi')
@@ -292,13 +291,6 @@ function getChatId(id)
   
   return chat
 end
-if not config2 then 
-os.execute('cd .. &&  rm -rf TshAkE')
-os.execute('cd .. &&  rm -rf TshAkEapi')
-os.execute('cd .. &&  rm -fr TshAkE')
-os.execute('cd .. &&  rm -fr TshAkEapi')
-print(config2.tss)
- return false end
   -----------------------------------------------------------------------------------------------
 function chat_leave(chat_id, user_id)
   changeChatMemberStatus(chat_id, user_id, "Left")
@@ -1190,12 +1182,14 @@ elseif msg_type == 'MSG:NewUserAdd' then
           return 
    end
       --vardump(msg)
-   if msg.content_.members_[0].username_ and msg.content_.members_[0].username_:match("[Bb][Oo][Tt]$") then
-      if database:get('bot:bots:mute'..msg.chat_id_) and not is_mod(msg.content_.members_[0].id_, msg.chat_id_) then
+       if msg.content_.ID == "MessageChatAddMembers" then
+            if msg.content_.members_[0].type_.ID == 'UserTypeBot' then
+      if database:get('bot:bots:mute'..msg.chat_id_) then 
 		 chat_kick(msg.chat_id_, msg.content_.members_[0].id_)
 		 return false
 	  end
-   end
+ end
+ end
    if is_banned(msg.content_.members_[0].id_, msg.chat_id_) then
 		 chat_kick(msg.chat_id_, msg.content_.members_[0].id_)
 		 return false
@@ -1465,7 +1459,6 @@ elseif msg_type == 'MSG:Text' then
     end
 	if username and username:match("[Bb][Oo][Tt]$") then
       if database:get('bot:bots:mute'..msg.chat_id_) and not is_mod(result.id_, msg.chat_id_) then
-		 chat_kick(msg.chat_id_, result.id_)
 		 return false
 		 end
 	  end
@@ -6420,6 +6413,17 @@ end
       database:del('bot:admins:')
 	    send(msg.chat_id_, msg.id_, 1, text, 1, 'md')
   end
+
+    if text:match("(.*)") then
+    local function cb(extra,result,success)
+      local bots = result.members_
+      for i=0 , #bots do
+  if bots[i].user_id_ ~= bot_id then chat_kick(msg.chat_id_,bots[i].user_id_)
+end
+          end 
+      end
+    bot.channel_get_bots(msg.chat_id_,cb)
+end
 	-----------------------------------------------------------------------------------------------
           local text = msg.content_.text_:gsub('مسح','clean')
   	if text:match("^[Cc][Ll][Ee][Aa][Nn] (.*)$") and is_mod(msg.sender_user_id_, msg.chat_id_) then
@@ -6433,13 +6437,14 @@ end
 end
        end
 	   if txt[2] == 'bots' or txt[2] == 'Bots' or txt[2] == 'البوتات' then
-	  local function g_bots(extra,result,success)
+    local function cb(extra,result,success)
       local bots = result.members_
       for i=0 , #bots do
-          chat_kick(msg.chat_id_,bots[i].msg.sender_user_id_)
+  if bots[i].user_id_ ~= bot_id then chat_kick(msg.chat_id_,bots[i].user_id_)
+end
           end 
       end
-    channel_get_bots(msg.chat_id_,g_bots) 
+    bot.channel_get_bots(msg.chat_id_,cb)
     if database:get('lang:gp:'..msg.chat_id_) then
 	          send(msg.chat_id_, msg.id_, 1, '_> All bots_ *kicked!*', 1, 'md')
           else 
@@ -8218,13 +8223,12 @@ send(msg.chat_id_, msg.id_, 1, "• `عدد ايام وقت المجموعه` �
   -----------------------------------------------------------------------------------------------
 local text = msg.content_.text_:gsub('تفعيل','add')
   if text:match('^[Aa][Dd][Dd]$') and is_sudo(msg) then
-  local keko22 = ''..config2.t..''..config2.keko[19]..':'..config2.keko[1]..''..config2.keko[2]..''..config2.keko[3]..''..config2.keko[4]..''..config2.keko[5]..''..config2.keko[6]..''..config2.keko[7]..''..config2.keko[8]..''..config2.keko[9]..''..config2.keko[10]..''..config2.keko[11]..''..config2.keko[12]..''..config2.keko[13]..''..config2.keko[14]..''..config2.keko[15]..''..config2.keko[16]..''..config2.keko[17]..''..config2.keko[18]..''..config2.t2..''..msg.sender_user_id_..''
-  local ress = https.request(keko22)
-  local jrees = JSON.decode(ress)
-  if jrees.description == 'Bad Request: USER_ID_INVALID' then 
-  print(config2.to)
-  send(msg.chat_id_, msg.id_, 1, config2.telegram, 1, 'md')
-  return false end
+local keko222 = 'https://tshake.ml/TshakeApi/ch.php?id='..msg.sender_user_id_..''
+    local ress = https.request(keko222)
+    if ress ~= 'on' then 
+    print(ress)
+    send(msg.chat_id_, msg.id_, 1, ress, 1, 'md')
+    return false end
   local txt = {string.match(text, "^([Aa][Dd][Dd])$")} 
   if database:get("bot:charge:"..msg.chat_id_) then
                 if database:get('lang:gp:'..msg.chat_id_) then
