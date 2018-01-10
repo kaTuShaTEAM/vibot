@@ -6,6 +6,7 @@
     |_||___/_| |_/_/   \_\_|\_\_____|   
               CH > @TshAkETEAM
 --]]
+token="token" — هنا خلي توكن بوتك
 serpent = require('serpent')
 serp = require 'serpent'.block
 http = require("socket.http")
@@ -24,8 +25,6 @@ notify.init ("Telegram updates")
 sudos = dofile('sudo.lua')
 chats = {}
 day = 86400
-bot_id_keko = {string.match(token, "^(%d+)(:)(.*)")}
-bot_id = bot_id_keko[1]
   -----------------------------------------------------------------------------------------------
                                     -- start functions --
   -----------------------------------------------------------------------------------------------
