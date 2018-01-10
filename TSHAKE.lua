@@ -6,7 +6,7 @@
     |_||___/_| |_/_/   \_\_|\_\_____|   
               CH > @TshAkETEAM
 --]]
-token="token" — هنا خلي توكن بوتك
+token = "توكن البوت"
 serpent = require('serpent')
 serp = require 'serpent'.block
 http = require("socket.http")
