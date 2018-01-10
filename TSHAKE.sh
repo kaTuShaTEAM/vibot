@@ -45,4 +45,4 @@ echo -e "        CH  | @TshAkETEAM"
 echo -e "        CH  | @TshAkETEAM"
 echo -e "        \e[38;5;40m"
 
-lua start.lua
+  ./tg -s TSHAKE.lua 
