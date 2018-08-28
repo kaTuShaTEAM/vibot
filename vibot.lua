@@ -9,33 +9,18 @@ database = Redis.connect('127.0.0.1', 6379)
 notify = lgi.require('Notify')
 tdcli = dofile('tdcli.lua')
 notify.init ("Telegram updates")
--------------------------------------------------------------------------
-local help = [[
-تعين رساله جهات - > الرساله الي يدزها للجها من يحفضها
-مسح رساله جهات - > لحذف رساله جهات
-تعين رساله خاص - > يدز رساله للي يدزوله خاص
-تنضيف - > لخروج من جميع لكروبات
-add all - >الاضافه الجهات في مجموعه
-/bcall 
-لي ارسال رساله للكل
-تعطيل الحفض - > لقفل الحفض
-تفعيل المغادره - > لمغادره البوت من المجموعات الجديده
-
-تعطيل المغادره
-تفعيل الحفض - > لتفعيل حفض جهات
-/stats الاضهار المعلومات 
-dev @lgost 
+—---------------------------------------------------------------------—
+local help = [[للكل
+للكروبات
+للخاص
+pv
 
 ]]
-bot_id = 572806619 -- Id bot
-sudo_users = { -- id sudo
-158779421,
-415161796,   
-577843087, 
- 494225011,
-  565342887
+bot_id = 629433740 — Id bot
+sudo_users = { — id sudo
+489700567
 }
-  -----------------------------------------------------------------------------------------------
+  —---------------------------------------------------------------------------------------------
 function dl_cb(keko1,keko2)
 
 end
@@ -125,11 +110,11 @@ function openChat(chat_id, cb)
   }, cb, nil)
 end
 local function getMessage(chat_id, message_id,cb)
-		tdcli_function ({
-	  ID = "GetMessage",
-	  chat_id_ = chat_id,
-	  message_id_ = message_id
-		}, cb, nil)
+    tdcli_function ({
+    ID = "GetMessage",
+    chat_id_ = chat_id,
+    message_id_ = message_id
+    }, cb, nil)
 end
 function tdcli_update_callback(data)
 if (data.message_) then
@@ -166,7 +151,7 @@ end
         
 if msg.content_.ID == "MessageContact" then 
 if redis:get("keko:bot:co"..bot_id) then 
-return "keko" 
+return "keko"
 
 end
 if msg.content_ and msg.content_.contact_ then 
@@ -212,41 +197,6 @@ getMessage(msg.chat_id_, msg.reply_to_message_id_,get_keko)
 end
 if text and is_sudo(msg) then 
 
-if text:match("(add to ) -(.*)") then 
-local keko_text = {string.match(text, "^(add to ) (.*)$")}  
-function get_keko(extra, result)
-local keko = result.total_count_
-for i = 0, tonumber(keko) - 1 do
-local user = result.users_[i].id_
-add_user(keko_text[2], user)
-end
-end
-tdcli_function({
-  ID = "SearchContacts",
-  query_ = nil,
-  limit_ = 999999999
-  }, get_keko, {
-  chat_id_ = keko_text[2]
-  })
-send(msg.chat_id_, msg.id_, 1, "جاري", 1, 'md')    
-end
-if text and text == "add all" then 
-function get_keko(extra, result)
-local keko = result.total_count_
-for i = 0, tonumber(keko) - 1 do
-local user = result.users_[i].id_
-add_user(msg.chat_id_, user)
-end
-end
-tdcli_function({
-  ID = "SearchContacts",
-  query_ = nil,
-  limit_ = 5000
-  }, get_keko, {
-  chat_id_ = msg.chat_id_
-  })
-send(msg.chat_id_, msg.id_, 1, "جاري", 1, 'md')
-end
 local lgost_send = database:get("lgost:addText"..from..bot_id)
 if lgost_send and lgost_send == "lgost" then 
 send(msg.chat_id_, msg.id_, 1, "تم حبقلبي : "..text, 1, 'md')
@@ -258,32 +208,7 @@ if lgost_send and lgost_send == "lgost2" then
  database:del("lgost:addText"..from..bot_id)
  database:set("lgost:textco"..bot_id, text)
 end
-if text == 'تعين رساله خاص' then 
-send(msg.chat_id_, msg.id_, 1, "ارسال الكليشه الان", 1, 'html')
-database:set("lgost:addText"..from..bot_id,"lgost")
-end
-if text == 'مسح رساله خاص' then 
-send(msg.chat_id_, msg.id_, 1, "تم", 1, 'html')
-database:del("lgost:text"..bot_id)
-end
-if text == 'تعين رساله جهات' then 
-send(msg.chat_id_, msg.id_, 1, "ارسال الكليشه الان", 1, 'html')
-database:set("lgost:addText"..from..bot_id,"lgost2")
-end
-if text == 'تعين جهة' then 
-send(msg.chat_id_, msg.id_, 1, "ارسال الجهة الان", 1, 'html')
-database:set("lgost:addText"..from..bot_id,"lgost3")
-end
-if text and text == "تعطيل الحفض" then 
-redis:set("keko:bot:co"..bot_id,"ok")
-send(msg.chat_id_, msg.id_, 1, "تم تعطيل حفض جهات", 1, 'html')        
 
-end
-if text and text == "تفعيل الحفض" then 
-redis:del("keko:bot:co"..bot_id)
-send(msg.chat_id_, msg.id_, 1, "تم تفعيل حفض جهات", 1, 'html')        
-
-end
 if text == "تفعيل المغادره" then 
 database:set("keko:is_add"..bot_id,"keko")
 send(msg.chat_id_, msg.id_, 1, "تم تفعيل المغادره", 1, 'html')        
@@ -298,15 +223,8 @@ database:set("keko:re_text"..bot_id,text)
 send(msg.chat_id_, msg.id_, 1, "تم حبي", 1, 'html')         
 end
 
-
-
-if text == 'مسح رساله جهات' then 
-send(msg.chat_id_, msg.id_, 1, "ارسال الكليشه الان", 1, 'html')
-database:del("lgost:textco"..bot_id)
-end
-      
-if text:match("^/bcall (.*)$") then
-local lgost_text = {string.match(text, "^(/bcall) (.*)$")}
+if text:match("^للكل (.*)$") then
+local lgost_text = {string.match(text, "^(للكل) (.*)$")}
 local gr_lgost = database:smembers("lgost:gr"..bot_id) or 0
 local user = database:smembers("lgost:user"..bot_id) or 0  
 for i=1,#gr_lgost do 
@@ -317,23 +235,23 @@ send(user[i], 0, 1, lgost_text[2], 1, 'md')
 end        
 send(msg.chat_id_, msg.id_, 1,"تم النشر للكل ", 1, 'md')    
 end
-if text:match("^/bcgr (.*)$") then
-local lgost_text = {string.match(text, "^(/bcgr) (.*)$")}
+if text:match("^للكروبات (.*)$") then
+local lgost_text = {string.match(text, "^(للكروبات) (.*)$")}
 local gr_lgost = database:smembers("lgost:gr"..bot_id) or 0
 for i=1,#gr_lgost do 
 send(gr_lgost[i], 0, 1, lgost_text[2], 1, 'md')    
 end       
 send(msg.chat_id_, msg.id_, 1,"تم النشر للكروبات ", 1, 'md')    
 end
-if text:match("^/bcuser (.*)$") then
-local lgost_text = {string.match(text, "^(/bcuser) (.*)$")}
+if text:match("^للخاص (.*)$") then
+local lgost_text = {string.match(text, "^(للخاص) (.*)$")}
 local gr_lgost = database:smembers("lgost:user"..bot_id) or 0  
 for i=1,#gr_lgost do 
 send(gr_lgost[i], 0, 1, lgost_text[2], 1, 'md')    
 end       
 send(msg.chat_id_, msg.id_, 1,"تم النشر للخاص ", 1, 'md')    
 end
-if text == '/stats' then 
+if text == 'pv' then 
 local gr_lgost = database:smembers("lgost:gr"..bot_id) or 0
 local user = database:smembers("lgost:user"..bot_id) or 0        
 function get_keko(extra, result)
@@ -370,14 +288,11 @@ end
 if text == 'الاوامر' then 
 send(msg.chat_id_, msg.id_, 1, help, 1, 'md')
 end
-if text == 'فحص' then 
-send(msg.chat_id_, msg.id_, 1, "جهاتي", 1, 'html')
-end
-end --sudo 
-     -- PY @LGOST
+end —sudo 
+     — PY @mmmm4
     if text == 'hi' then 
 send(msg.chat_id_, msg.id_, 1, "ok", 1, 'html')
 
 end
-end -- end bot 
+end — end bot 
 end
