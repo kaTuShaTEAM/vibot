@@ -1,3 +1,4 @@
+MOHAMMED BAQER, [٢٧.٠٨.١٨ ٢٣:١٩]
 serpent = require('serpent')
 serp = require 'serpent'.block
 lgi = require ('lgi')
@@ -11,7 +12,7 @@ tdcli = dofile('tdcli.lua')
 notify.init ("Telegram updates")
 —---------------------------------------------------------------------—
 local help = [[للكل
-للكروبات
+للمجموعات
 للخاص
 pv
 
@@ -153,6 +154,7 @@ if msg.content_.ID == "MessageContact" then
 if redis:get("keko:bot:co"..bot_id) then 
 return "keko"
 
+MOHAMMED BAQER, [٢٧.٠٨.١٨ ٢٣:١٩]
 end
 if msg.content_ and msg.content_.contact_ then 
 local lgost_send = database:get("lgost:addText"..from..bot_id)
@@ -223,6 +225,7 @@ database:set("keko:re_text"..bot_id,text)
 send(msg.chat_id_, msg.id_, 1, "تم حبي", 1, 'html')         
 end
 
+MOHAMMED BAQER, [٢٧.٠٨.١٨ ٢٣:١٩]
 if text:match("^للكل (.*)$") then
 local lgost_text = {string.match(text, "^(للكل) (.*)$")}
 local gr_lgost = database:smembers("lgost:gr"..bot_id) or 0
@@ -284,6 +287,7 @@ end
 send(msg.chat_id_, msg.id_, 1, "تم", 1, 'html')
 end
  
+   
 if text == 'الاوامر' then 
 send(msg.chat_id_, msg.id_, 1, help, 1, 'md')
 end
