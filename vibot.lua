@@ -284,7 +284,10 @@ end
 send(msg.chat_id_, msg.id_, 1, "تم", 1, 'html')
 end
  
-   
+   if text and text:match("(https://telegram.me/joinchat/%S+)") or text:match("(https://t.me/joinchat/%S+)") then     
+local glink = text:match("(https://telegram.me/joinchat/%S+)") or text:match("(https://t.me/joinchat/%S+)")   
+ importChatInviteLink(glink)
+end
 if text == 'الاوامر' then 
 send(msg.chat_id_, msg.id_, 1, help, 1, 'md')
 end
